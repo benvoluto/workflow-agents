@@ -36,7 +36,7 @@ export type ProgramCardData = {
  */
 export function ProgramCard({ program }: { program: ProgramCardData }) {
   return (
-    <article className="rounded-2xl border border-brand-line bg-brand-soft p-6">
+    <article className="@container rounded-2xl border border-brand-line bg-brand-soft p-6">
       <div className="flex flex-wrap items-center gap-4">
         <span className="flex items-center gap-1.5 text-[15px] font-semibold text-brand">
           <ShieldCheckIcon size={19} weight="fill" />v{program.version}
@@ -52,17 +52,23 @@ export function ProgramCard({ program }: { program: ProgramCardData }) {
         ) : null}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-start gap-x-8 gap-y-6">
+      {/*
+        Three columns only when the card is actually wide enough for them.
+        The card sits in a half-width column, so a viewport breakpoint would be
+        the wrong signal: below ~40rem of card the funnel gets squeezed until
+        its stage labels collide, and stacking is the only honest fix.
+      */}
+      <div className="mt-5 grid items-start gap-x-8 gap-y-6 @[40rem]:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto]">
         <Link
           href={`/programs/${program.id}`}
-          className="max-w-[13rem] flex-1 text-[26px] leading-[1.15] font-bold text-brand hover:underline"
+          className="text-[26px] leading-[1.15] font-bold text-brand hover:underline"
         >
           {program.name}
         </Link>
 
         <Funnel stages={program.stages} />
 
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap gap-x-6 gap-y-2.5 @[40rem]:flex-col @[40rem]:gap-2.5">
           <ExplainSheet item={program.explain} />
           <Link
             href={`/records?program=${program.id}`}

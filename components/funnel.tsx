@@ -48,16 +48,20 @@ export function Funnel({ stages }: { stages: FunnelStage[] }) {
     .join(' ')
 
   return (
-    <div className="min-w-0 flex-1" style={{ maxWidth: WIDTH }}>
+    <div className="min-w-0" style={{ maxWidth: WIDTH }}>
       <div className="flex">
         {stages.map((stage) => (
           <span
             key={stage.label}
-            className="flex flex-1 items-center gap-1.5 text-[17px] text-muted-foreground tabular-nums"
+            className="flex min-w-0 flex-1 items-center gap-1.5 pr-3 text-[15px] text-muted-foreground tabular-nums @[30rem]:text-[17px]"
           >
             {stage.count.toLocaleString('en-US')}
             {stage.flagged ? (
-              <WarningCircleIcon size={17} weight="bold" className="text-overdue" />
+              <WarningCircleIcon
+                size={16}
+                weight="bold"
+                className="shrink-0 text-overdue"
+              />
             ) : null}
           </span>
         ))}
@@ -65,7 +69,8 @@ export function Funnel({ stages }: { stages: FunnelStage[] }) {
 
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="mt-1 w-full"
+        className="mt-1 h-[58px] w-full"
+        preserveAspectRatio="none"
         role="img"
         aria-label={stages.map((s) => `${s.label}: ${s.count}`).join(', ')}
       >
@@ -87,6 +92,7 @@ export function Funnel({ stages }: { stages: FunnelStage[] }) {
           y2={BASELINE}
           className="stroke-foreground/15"
           strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
         />
 
         <path
@@ -95,13 +101,17 @@ export function Funnel({ stages }: { stages: FunnelStage[] }) {
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
           fill="none"
         />
       </svg>
 
       <div className="mt-1 flex">
         {stages.map((stage) => (
-          <span key={stage.label} className="flex-1 text-[15px] text-muted-foreground">
+          <span
+            key={stage.label}
+            className="min-w-0 flex-1 pr-3 text-[13px] leading-tight text-muted-foreground @[30rem]:text-[15px]"
+          >
             {stage.label}
           </span>
         ))}
