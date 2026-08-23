@@ -36,21 +36,22 @@ const STAGES = [
 
 function Pending({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus()
+  // Mounting Stages only while pending means its state starts fresh each time,
+  // with no reset to write back into React from an effect.
+  return pending ? <Stages /> : <>{children}</>
+}
+
+function Stages() {
   const [stage, setStage] = useState(0)
 
   useEffect(() => {
-    if (!pending) {
-      setStage(0)
-      return
-    }
     const timer = setInterval(
       () => setStage((s) => Math.min(s + 1, STAGES.length - 1)),
       4000,
     )
     return () => clearInterval(timer)
-  }, [pending])
+  }, [])
 
-  if (!pending) return <>{children}</>
   return (
     <span className="flex items-center gap-2">
       <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -99,10 +100,12 @@ export function UploadDialog({
   programs,
   samples,
   trigger,
+  defaultTab = 'sample',
 }: {
   programs: ProgramOption[]
   samples: SampleOption[]
   trigger?: React.ReactElement
+  defaultTab?: 'sample' | 'file' | 'paste'
 }) {
   const [open, setOpen] = useState(false)
 
@@ -120,7 +123,7 @@ export function UploadDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="sample">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="w-full">
             <TabsTrigger value="sample">Samples</TabsTrigger>
             <TabsTrigger value="file">Upload</TabsTrigger>

@@ -1,5 +1,6 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { FileTextIcon } from '@phosphor-icons/react/dist/ssr'
+import { PageHeading } from '@/components/page-heading'
 import { Badge } from '@/components/ui/badge'
 import { dateTime } from '@/lib/format'
 import { getDocument } from '@/lib/queries'
@@ -22,27 +23,19 @@ export default async function DocumentPage({ params }: PageProps<'/documents/[id
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/programs"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← Programs
-        </Link>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{document.name}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Uploaded {dateTime(document.uploadedAt)} · {document.contentType}
-            </p>
-          </div>
+      <PageHeading
+        icon={<FileTextIcon size={30} />}
+        title={document.name}
+        back={{ href: '/programs', label: 'Programs' }}
+        meta={`Uploaded ${dateTime(document.uploadedAt)} · ${document.contentType}`}
+        aside={
           <Badge variant="outline">
             {archived ? 'Original from archive' : 'Extracted text'}
           </Badge>
-        </div>
-      </div>
+        }
+      />
 
-      <pre className="overflow-x-auto rounded-xl border bg-card p-5 text-sm leading-relaxed whitespace-pre-wrap">
+      <pre className="overflow-x-auto rounded-2xl border bg-card p-5 text-sm leading-relaxed whitespace-pre-wrap">
         {body}
       </pre>
     </div>

@@ -27,7 +27,7 @@ async function main() {
   console.log('Resetting…')
   // Order matters: events and records reference programs; deltas reference both.
   await db.execute(
-    sql`truncate table ${schema.events}, ${schema.deltas}, ${schema.records}, ${schema.programVersions}, ${schema.programs}, ${schema.documents} restart identity cascade`,
+    sql`truncate table ${schema.events}, ${schema.deltas}, ${schema.snoozes}, ${schema.records}, ${schema.programVersions}, ${schema.programs}, ${schema.documents} restart identity cascade`,
   )
 
   const csvText = read('awards.csv')

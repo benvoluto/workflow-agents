@@ -83,7 +83,7 @@ Group headers and counts (Program Officer view):
 
 | Reason chip | Headline | Sub-line | Owner | Amount | Age label |
 |---|---|---|---|---|---|
-| Awaiting signature | Northgate Community Trust — needs a second signature | Award above $50,000 requires CFO sign-off · §4.2 | CFO · Priya Raman | $61,400 | waiting 5 days |
+| Awaiting signature | Northgate Community Trust — needs a second signature | Award above $50,000 requires CFO sign-off · §4.2 | CFO · Priya Raman | $61,400 | waiting 8 days |
 | Awaiting signature | Oakmoor Technical College — needs a second signature | Award above $50,000 requires CFO sign-off · §4.2 | CFO · Priya Raman | $210,000 | waiting 3 days |
 
 ### 2.4 Incomplete (folds into Blocked, or its own group — design both)
@@ -169,7 +169,7 @@ Use **AWD-1041 · Northgate Community Trust** as the design hero: it is simultan
 - Title: `Northgate Community Trust`
 - Sub: `AWD-1041 · Milestone Facilities Grant · spec v2`
 - State chip: `Tranche pending`
-- Banner (warning): `Blocked — awaiting CFO signature since 18 Aug. Disbursement due 25 Aug (2 days left).`
+- Banner (warning): `Blocked — awaiting CFO signature for 8 days. Disbursement due 25 Aug (2 days left).`
 
 **Fields panel** (generic form rendered from the spec)
 
@@ -350,7 +350,7 @@ Callout on either Tanner Ridge record:
 
 **Flags:** Overdue · Due today · Blocked · Missing information · Also in Program B · New
 
-**Time labels:** due today · 2 days left · 1 day over · 4 days over · 9 days over · waiting 5 days · 8d · today
+**Time labels:** due today · 2 days left · 1 day over · 4 days over · 9 days over · waiting 8 days · 8d · today
 
 **Numbers to typeset:** `$10,000` `$24,750` `$61,400` `$148,000` `$305,000` `$101,300` — design the money style for 5- and 6-figure widths.
 

@@ -14,6 +14,37 @@ import type { Spec } from '@/lib/spec/types'
 import { emptySpec, titleFromDocument } from '@/lib/spec/starter'
 import { SAMPLES } from '@/lib/samples.generated'
 
+/**
+ * Stop showing one queue item for a few days.
+ *
+ * Snoozing hides the item, never the underlying condition: the clock keeps
+ * running, the rule stays unmet, and the item comes back on its own. It is a
+ * way to say "not today", not a way to close something.
+ */
+export async function snoozeItem(formData: FormData) {
+  const itemId = String(formData.get('itemId') ?? '')
+  const days = Number(formData.get('days') ?? 3)
+  const role = await currentRole()
+  if (!itemId) return
+
+  const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+  await db
+    .insert(schema.snoozes)
+    .values({ itemId, until, actor: actorFor(role) })
+    .onConflictDoUpdate({
+      target: schema.snoozes.itemId,
+      set: { until, actor: actorFor(role) },
+    })
+  revalidatePath('/', 'layout')
+}
+
+export async function unsnoozeItem(formData: FormData) {
+  const itemId = String(formData.get('itemId') ?? '')
+  if (!itemId) return
+  await db.delete(schema.snoozes).where(eq(schema.snoozes.itemId, itemId))
+  revalidatePath('/', 'layout')
+}
+
 export async function setRole(formData: FormData) {
   const role = String(formData.get('role') ?? '')
   if (!(ROLES as readonly string[]).includes(role)) return

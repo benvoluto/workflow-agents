@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { BuildingsIcon } from '@phosphor-icons/react/dist/ssr'
+import { PageHeading } from '@/components/page-heading'
 import { migrateProgram } from '@/app/actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -35,33 +37,27 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
 
   return (
     <div className="space-y-8">
-      <div>
-        <Link
-          href="/programs"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← Programs
-        </Link>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{program.name}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Version {program.currentVersion} · {mine.length}{' '}
-              {mine.length === 1
-                ? program.entity.toLowerCase()
-                : `${program.entity.toLowerCase()}s`}{' '}
-              ·{' '}
-              <Link
-                href={`/records?program=${program.id}`}
-                className="underline-offset-4 hover:underline"
-              >
-                view records
-              </Link>
-            </p>
-          </div>
-          <Badge variant="outline">v{program.currentVersion}</Badge>
-        </div>
-      </div>
+      <PageHeading
+        icon={<BuildingsIcon size={30} />}
+        title={program.name}
+        back={{ href: '/programs', label: 'Programs' }}
+        aside={<Badge variant="outline">v{program.currentVersion}</Badge>}
+        meta={
+          <>
+            Version {program.currentVersion} · {mine.length}{' '}
+            {mine.length === 1
+              ? program.entity.toLowerCase()
+              : `${program.entity.toLowerCase()}s`}{' '}
+            ·{' '}
+            <Link
+              href={`/records?program=${program.id}`}
+              className="text-link underline-offset-4 hover:underline"
+            >
+              view records
+            </Link>
+          </>
+        }
+      />
 
       {applied ? (
         <Alert>
@@ -137,7 +133,7 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
 
       <section>
         <h2 className="mb-3 text-sm font-semibold tracking-tight">Lifecycle</h2>
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-4">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-4">
           {spec.states.map((state, i) => (
             <span key={state} className="flex items-center gap-2">
               <StateChip state={state} />
@@ -257,7 +253,7 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
             The extractor found these but could not turn them into a rule without
             guessing. They are recorded rather than invented.
           </p>
-          <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+          <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
             {spec.unresolved.map((u) => (
               <li key={u.id} className="px-4 py-3">
                 <p className="text-sm font-medium">{u.summary}</p>
@@ -275,7 +271,7 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
 
       <section>
         <h2 className="mb-3 text-sm font-semibold tracking-tight">Version history</h2>
-        <ol className="divide-y overflow-hidden rounded-xl border bg-card">
+        <ol className="divide-y overflow-hidden rounded-2xl border bg-card">
           {[...program.versions].reverse().map((v) => (
             <li key={v.version} className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3">
               <span className="w-16 shrink-0 text-sm font-medium">v{v.version}</span>
@@ -320,11 +316,11 @@ function Section({
     <section>
       <h2 className="mb-3 text-sm font-semibold tracking-tight">{title}</h2>
       {isEmpty ? (
-        <p className="rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground">
+        <p className="rounded-2xl border border-dashed px-4 py-6 text-sm text-muted-foreground">
           {empty}
         </p>
       ) : (
-        <ul className="divide-y overflow-hidden rounded-xl border bg-card">{items}</ul>
+        <ul className="divide-y overflow-hidden rounded-2xl border bg-card">{items}</ul>
       )}
     </section>
   )

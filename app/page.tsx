@@ -1,192 +1,269 @@
-import Link from 'next/link'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { BuildingsIcon, TrayIcon } from '@phosphor-icons/react/dist/ssr'
+import { AttentionCard } from '@/components/attention-card'
+import { FilterTabs, type Tab, type Tone } from '@/components/filter-tabs'
+import { ProgramCard, type FunnelStage, type ProgramCardData } from '@/components/program-card'
 import { UploadDialog } from '@/components/upload-dialog'
-import { attention, URGENCY_LABELS, type AttentionItem, type Urgency } from '@/lib/engine/attention'
-import { money } from '@/lib/format'
-import { getPendingDeltas, getPrograms, getRecords, toContexts } from '@/lib/queries'
+import {
+  attention,
+  visibleTo,
+  type AttentionItem,
+  type Urgency,
+} from '@/lib/engine/attention'
+import {
+  getPendingDeltas,
+  getPrograms,
+  getRecords,
+  getSnoozedItemIds,
+  toContexts,
+  type ProgramSummary,
+  type RecordRow,
+} from '@/lib/queries'
 import { currentRole } from '@/lib/roles'
-import { ROLE_LABELS, ROLE_PEOPLE } from '@/lib/spec/types'
 import { SAMPLE_OPTIONS } from '@/lib/samples'
-import { cn } from '@/lib/utils'
+import { ROLE_LABELS, ROLE_PEOPLE, stateLabel, type Spec } from '@/lib/spec/types'
 
-const GROUPS: Urgency[] = ['overdue', 'due_soon', 'blocked', 'change']
+const URGENCY_TAB: { key: Urgency; label: string; tone: Tone }[] = [
+  { key: 'overdue', label: 'Overdue', tone: 'overdue' },
+  { key: 'blocked', label: 'Blocked', tone: 'blocked' },
+  { key: 'due_soon', label: 'Due Soon', tone: 'due_soon' },
+  { key: 'change', label: 'Pending Change', tone: 'change' },
+]
 
-const REASON_TONE: Record<string, string> = {
-  'Clock breach': 'border-red-600/25 bg-red-50 text-red-800 dark:bg-red-950/50 dark:text-red-300',
-  'Clock warning': 'border-amber-600/25 bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200',
-  'Awaiting approval': 'border-violet-600/25 bg-violet-50 text-violet-900 dark:bg-violet-950/50 dark:text-violet-200',
-  'Missing information': 'border-slate-600/25 bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-200',
-  'Change impact': 'border-sky-600/25 bg-sky-50 text-sky-900 dark:bg-sky-950/50 dark:text-sky-200',
-}
+type ProgramStatus = 'active' | 'in_review' | 'winding_down' | 'closed_out'
 
-export default async function InboxPage({ searchParams }: PageProps<'/'>) {
+const STATUS_TAB: { key: ProgramStatus; label: string; tone: Tone }[] = [
+  { key: 'active', label: 'Active', tone: 'brand' },
+  { key: 'in_review', label: 'In Review', tone: 'change' },
+  { key: 'winding_down', label: 'Winding Down', tone: 'neutral' },
+  { key: 'closed_out', label: 'Closed Out', tone: 'neutral' },
+]
+
+export default async function HomePage({ searchParams }: PageProps<'/'>) {
   const params = await searchParams
+  const queue = typeof params.queue === 'string' ? params.queue : null
+  const status = typeof params.status === 'string' ? params.status : null
   const error = typeof params.error === 'string' ? params.error : null
 
-  const [role, programs, records, pending] = await Promise.all([
+  const [role, programs, records, pending, snoozed] = await Promise.all([
     currentRole(),
     getPrograms(),
     getRecords(),
     getPendingDeltas(),
+    getSnoozedItemIds(),
   ])
 
   const all = attention(toContexts(programs), records, new Date())
-  // An item with no owner is everyone's problem; an owned one belongs to its role.
-  const mine = all.filter((i) => i.ownerRole === null || i.ownerRole === role)
+  const mine = all.filter((i) => visibleTo(i, role))
+  const live = mine.filter((i) => !snoozed.has(i.id))
+
+  const queueTabs: Tab[] = [
+    { key: 'all', label: 'All', href: '/', active: !queue, tone: 'neutral' },
+    ...URGENCY_TAB.filter((t) => live.some((i) => i.urgency === t.key)).map((t) => ({
+      key: t.key,
+      label: t.label,
+      count: live.filter((i) => i.urgency === t.key).length,
+      tone: t.tone,
+      href: `/?queue=${t.key}${status ? `&status=${status}` : ''}`,
+      active: queue === t.key,
+    })),
+  ]
+
+  const visibleItems = queue ? live.filter((i) => i.urgency === queue) : live
+
+  const cards = programs
+    .filter((p) => p.currentSpec)
+    .map((p) => buildProgramCard(p, records, all, pending))
+
+  const statusTabs: Tab[] = [
+    {
+      key: 'all',
+      label: 'All',
+      href: queue ? `/?queue=${queue}` : '/',
+      active: !status,
+      tone: 'neutral',
+    },
+    ...STATUS_TAB.filter((t) => cards.some((c) => c.status === t.key)).map((t) => ({
+      key: t.key,
+      label: t.label,
+      count: cards.filter((c) => c.status === t.key).length,
+      tone: t.tone,
+      href: `/?${queue ? `queue=${queue}&` : ''}status=${t.key}`,
+      active: status === t.key,
+    })),
+  ]
+  const visiblePrograms = status ? cards.filter((c) => c.status === status) : cards
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {mine.length === 0
-              ? `Nothing needs ${ROLE_PEOPLE[role]} right now.`
-              : `${mine.length} ${mine.length === 1 ? 'thing needs' : 'things need'} ${ROLE_PEOPLE[role]}, ${ROLE_LABELS[role]}.`}
-          </p>
-        </div>
-        {all.length !== mine.length ? (
-          <p className="text-sm text-muted-foreground">
-            {all.length - mine.length} more with other roles
+    <div className="grid gap-x-14 gap-y-10 lg:grid-cols-2">
+      <section>
+        <ColumnHeading icon={<TrayIcon size={30} />} title="To Review" />
+        <FilterTabs tabs={queueTabs} className="mt-4 mb-5" />
+
+        {error ? (
+          <p className="mb-4 rounded-2xl border border-overdue/30 bg-overdue-soft px-5 py-4 text-[15px] text-overdue">
+            {error}
           </p>
         ) : null}
-      </div>
 
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>That did not work</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+        {visibleItems.length === 0 ? (
+          <EmptyQueue
+            role={role}
+            hasPrograms={programs.length > 0}
+            snoozed={mine.length - live.length}
+          />
+        ) : (
+          <div className="space-y-4">
+            {visibleItems.map((item) => (
+              <AttentionCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
 
-      {pending.length > 0 ? (
-        <Alert>
-          <AlertTitle>
-            {pending.length === 1
-              ? 'A document is waiting for review'
-              : `${pending.length} documents are waiting for review`}
-          </AlertTitle>
-          <AlertDescription className="flex flex-wrap items-center gap-3">
-            <span>Nothing it proposes takes effect until somebody approves it.</span>
-            <Button
-              size="sm"
-              variant="outline"
-              render={<Link href={`/review/${pending[0].id}`} />}
-            >
-              Review changes
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : null}
+        {mine.length > live.length && !queue ? (
+          <p className="mt-5 text-[15px] text-muted-foreground">
+            {mine.length - live.length} snoozed. They come back on their own — the clocks
+            behind them never stopped.
+          </p>
+        ) : null}
+      </section>
 
-      {mine.length === 0 ? (
-        <EmptyInbox programs={programs} />
-      ) : (
-        <div className="space-y-8">
-          {GROUPS.map((group) => {
-            const items = mine.filter((i) => i.urgency === group)
-            if (items.length === 0) return null
-            return (
-              <section key={group}>
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold tracking-tight">
-                  {URGENCY_LABELS[group]}
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
-                    {items.length}
-                  </span>
-                </h2>
-                <ul className="divide-y overflow-hidden rounded-xl border bg-card">
-                  {items.map((item) => (
-                    <ItemRow key={item.id} item={item} />
-                  ))}
-                </ul>
-              </section>
-            )
-          })}
-        </div>
-      )}
+      <section>
+        <ColumnHeading icon={<BuildingsIcon size={30} />} title="Programs" />
+        <FilterTabs tabs={statusTabs} className="mt-4 mb-5" />
+
+        {visiblePrograms.length === 0 ? (
+          <div className="rounded-2xl border border-dashed px-6 py-14 text-center">
+            <p className="text-[15px] text-muted-foreground">
+              {programs.length === 0
+                ? 'No programs yet. Upload a spreadsheet to get a working one, then the contract that governs it.'
+                : 'No programs in this state.'}
+            </p>
+            {programs.length === 0 ? (
+              <div className="mt-5 flex justify-center">
+                <UploadDialog programs={[]} samples={SAMPLE_OPTIONS} />
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {visiblePrograms.map((card) => (
+              <ProgramCard key={card.id} program={card} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
 
-function ItemRow({ item }: { item: AttentionItem }) {
-  const body = (
-    <div className="flex flex-wrap items-start gap-x-4 gap-y-2 px-4 py-3.5 transition-colors hover:bg-accent/50">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge
-            variant="outline"
-            className={cn('text-[11px] font-medium', REASON_TONE[item.reason])}
-          >
-            {item.reason}
-          </Badge>
-          <span className="truncate text-sm font-medium">{item.headline}</span>
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">{item.subline}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {item.programName}
-          {item.recordRef ? ` · ${item.recordRef}` : ''}
-          {item.ownerRole ? ` · ${ROLE_PEOPLE[item.ownerRole]}` : ''}
-        </p>
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        {item.amount !== null ? (
-          <span className="text-sm font-medium tabular-nums">{money(item.amount)}</span>
-        ) : null}
-        <span
-          className={cn(
-            'text-xs font-medium tabular-nums',
-            item.urgency === 'overdue' ? 'text-red-700 dark:text-red-400' : 'text-muted-foreground',
-          )}
-        >
-          {item.ageLabel}
-        </span>
-      </div>
-    </div>
-  )
-
+function ColumnHeading({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
-    <li>
-      {item.recordId ? (
-        <Link href={`/records/${item.recordId}`} className="block">
-          {body}
-        </Link>
-      ) : (
-        <Link href={`/programs/${item.programId}`} className="block">
-          {body}
-        </Link>
-      )}
-    </li>
+    <h1 className="flex items-center gap-3 text-[30px] font-normal text-heading">
+      {icon}
+      {title}
+    </h1>
   )
 }
 
-function EmptyInbox({
-  programs,
+function EmptyQueue({
+  role,
+  hasPrograms,
+  snoozed,
 }: {
-  programs: { id: string; name: string; currentVersion: number }[]
+  role: keyof typeof ROLE_LABELS
+  hasPrograms: boolean
+  snoozed: number
 }) {
-  const empty = programs.length === 0
   return (
-    <div className="rounded-xl border border-dashed px-6 py-16 text-center">
-      <h2 className="text-lg font-medium">
-        {empty ? 'No programs yet' : 'Nothing needs your attention'}
-      </h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        {empty
-          ? 'Upload a spreadsheet to get a working app, then upload the contract that governs it.'
-          : 'When a clock runs down, an approval stalls, or a document changes the rules, it shows up here.'}
+    <div className="rounded-2xl border border-dashed px-6 py-14 text-center">
+      <p className="text-[17px] font-medium">
+        {hasPrograms
+          ? `Nothing needs ${ROLE_PEOPLE[role]} right now`
+          : 'Nothing to review yet'}
       </p>
-      <div className="mt-6 flex justify-center">
-        <UploadDialog
-          programs={programs.map((p) => ({
-            id: p.id,
-            name: p.name,
-            version: p.currentVersion,
-          }))}
-          samples={SAMPLE_OPTIONS}
-        />
-      </div>
+      <p className="mx-auto mt-2 max-w-sm text-[15px] text-muted-foreground">
+        {snoozed > 0
+          ? `${snoozed} snoozed. When a clock runs down, an approval stalls, or a document changes the rules, it shows up here.`
+          : 'When a clock runs down, an approval stalls, or a document changes the rules, it shows up here. Switch role in the header to see another queue.'}
+      </p>
     </div>
   )
+}
+
+/**
+ * Three points on a program's lifecycle, counted cumulatively: how much work has
+ * reached each stage, not how much is sitting in it. That is the shape people
+ * mean by a pipeline, and it survives lifecycles this app has never seen,
+ * because the stages come from the spec rather than from a fixed list.
+ */
+function funnelFor(spec: Spec, mine: RecordRow[], flagged: Set<string>): FunnelStage[] {
+  if (spec.states.length === 0) return []
+  const picks =
+    spec.states.length <= 3
+      ? spec.states
+      : [
+          spec.states[0],
+          spec.states[Math.floor(spec.states.length / 2)],
+          spec.states.at(-2)!,
+        ]
+
+  return picks.map((state) => {
+    const at = spec.states.indexOf(state)
+    const reached = mine.filter((r) => spec.states.indexOf(r.state) >= at)
+    return {
+      label: stateLabel(state),
+      count: reached.length,
+      flagged: reached.some(
+        (r) => flagged.has(r.id) && spec.states.indexOf(r.state) === at,
+      ),
+    }
+  })
+}
+
+function buildProgramCard(
+  program: ProgramSummary,
+  records: RecordRow[],
+  items: AttentionItem[],
+  pending: { programId: string | null; id: string }[],
+): ProgramCardData & { status: ProgramStatus } {
+  const spec = program.currentSpec
+  const mine = records.filter((r) => r.programId === program.id)
+  const flagged = new Set(items.map((i) => i.recordId).filter(Boolean) as string[])
+  const terminal = spec.states.slice(-1)
+  const done = mine.filter((r) => terminal.includes(r.state)).length
+  const hasPending = pending.some((d) => d.programId === program.id)
+
+  const status: ProgramStatus = hasPending
+    ? 'in_review'
+    : mine.length > 0 && done === mine.length
+      ? 'closed_out'
+      : mine.length > 0 && done / mine.length > 0.7
+        ? 'winding_down'
+        : 'active'
+
+  const rules = spec.rules.length
+  const clocks = spec.clocks.length
+  const entity = program.entity.toLowerCase()
+
+  return {
+    id: program.id,
+    name: program.name,
+    version: program.currentVersion,
+    pendingVersion: hasPending ? program.currentVersion + 1 : null,
+    stages: funnelFor(spec, mine, flagged),
+    status,
+    explain: {
+      id: `program:${program.id}`,
+      reason: 'Program',
+      headline: program.name,
+      subline: `Version ${program.currentVersion}, with ${rules} ${rules === 1 ? 'rule' : 'rules'} and ${clocks} ${clocks === 1 ? 'clock' : 'clocks'}, running ${mine.length} ${mine.length === 1 ? entity : `${entity}s`} through ${spec.states.map(stateLabel).join(' → ')}`,
+      programName: program.name,
+      recordRef: null,
+      ownerName: program.versions.at(-1)?.approvedBy ?? null,
+      evidence: spec.rules[0]?.source ?? spec.clocks[0]?.source ?? null,
+      resolution:
+        'Every rule here traces to a clause. Open the program to see each one with the sentence it came from.',
+      ageLabel: `v${program.currentVersion}`,
+    },
+  }
 }

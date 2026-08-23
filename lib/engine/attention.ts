@@ -23,6 +23,10 @@ export type AttentionItem = {
   amount: number | null
   dueAt: Date | null
   ageLabel: string
+  /** The clause this item traces to, for the explanation panel. */
+  evidence: { document: string; clause: string; quote: string } | null
+  /** What would take this item out of the queue. */
+  resolution: string
   /** Lower sorts first within a group. */
   sortKey: number
 }
@@ -128,6 +132,8 @@ export function attention(
           ownerRole: clock.ownerRole,
           dueAt: due,
           ageLabel: overdueLabel(-remaining),
+          evidence: clock.source,
+          resolution: `Moving this ${program(ctx)} out of ${prettyState(record.state)} stops the clock.`,
           sortKey: remaining,
         })
       } else if (elapsed >= clock.warnAt) {
@@ -141,6 +147,8 @@ export function attention(
           ownerRole: clock.ownerRole,
           dueAt: due,
           ageLabel: remainingLabel(remaining),
+          evidence: clock.source,
+          resolution: `Moving this ${program(ctx)} out of ${prettyState(record.state)} before ${fmtDate(due)} stops the clock.`,
           sortKey: remaining,
         })
       }
@@ -162,6 +170,8 @@ export function attention(
         ownerRole: rule.role ?? null,
         dueAt: null,
         ageLabel: `waiting ${daysBetween(record.stateEnteredAt, now)} days`,
+        evidence: rule.source,
+        resolution: `Recording ${needed} clears this.`,
         sortKey: -daysBetween(record.stateEnteredAt, now),
       })
     }
@@ -181,6 +191,8 @@ export function attention(
         ownerRole: forward[0]?.role ?? null,
         dueAt: null,
         ageLabel: `${daysBetween(record.stateEnteredAt, now)}d in state`,
+        evidence: missing[0]?.source ?? null,
+        resolution: `Filling in ${names} lets this move on.`,
         sortKey: -daysBetween(record.stateEnteredAt, now),
       })
     }
@@ -242,6 +254,8 @@ function changeImpact(
       amount: null,
       dueAt: null,
       ageLabel: `${affected.length} affected`,
+      evidence: rule.source,
+      resolution: `Moving these records to v${ctx.currentVersion} applies the new rule to them.`,
       sortKey: -affected.length,
     })
   }
@@ -273,11 +287,17 @@ function changeImpact(
       amount: null,
       dueAt: null,
       ageLabel: `${affected.length} affected`,
+      evidence: clock.source,
+      resolution: `Moving these records to v${ctx.currentVersion} applies the tighter window to them.`,
       sortKey: -affected.length,
     })
   }
 
   return out
+}
+
+function program(ctx: ProgramContext): string {
+  return ctx.currentSpec?.entity?.toLowerCase() ?? 'record'
 }
 
 function prettyState(state: string): string {
@@ -293,4 +313,17 @@ export const URGENCY_LABELS: Record<Urgency, string> = {
   due_soon: 'Due soon',
   blocked: 'Blocked',
   change: 'Affected by a change',
+}
+
+/**
+ * Whether a queue item belongs in a given role's view.
+ *
+ * The Program Officer runs the program and sees all of it, with each item
+ * naming whoever owes the next move — that is the coordinating job. Finance and
+ * the CFO see only what is actually theirs, because for them a full queue would
+ * be noise they cannot act on.
+ */
+export function visibleTo(item: AttentionItem, role: Role): boolean {
+  if (role === 'program_officer') return true
+  return item.ownerRole === null || item.ownerRole === role
 }

@@ -1,4 +1,4 @@
-import { asc, desc, eq } from 'drizzle-orm'
+import { asc, desc, eq, gt } from 'drizzle-orm'
 import { db, schema } from '@/lib/db'
 import type { ProgramContext } from '@/lib/engine/attention'
 import type { RecordLike } from '@/lib/engine/runtime'
@@ -84,6 +84,18 @@ function toRecordLike(row: typeof schema.records.$inferSelect): RecordRow {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
+}
+
+/**
+ * Item ids currently snoozed. Expired rows are simply not returned, so nothing
+ * has to sweep the table for the queue to be correct.
+ */
+export async function getSnoozedItemIds(now = new Date()): Promise<Set<string>> {
+  const rows = await db
+    .select({ itemId: schema.snoozes.itemId })
+    .from(schema.snoozes)
+    .where(gt(schema.snoozes.until, now))
+  return new Set(rows.map((r) => r.itemId))
 }
 
 export async function getEvents(recordId: string) {

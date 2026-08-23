@@ -136,3 +136,24 @@ export const deltas = pgTable(
   },
   (t) => [index('delta_status_idx').on(t.status)],
 )
+
+/**
+ * A queue item somebody has chosen to stop seeing for a while.
+ *
+ * Keyed by the attention item's own stable id rather than by record, because a
+ * record can be in the queue for two unrelated reasons at once and silencing
+ * one of them should not silence the other.
+ */
+export const snoozes = pgTable(
+  'snoozes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    itemId: text('item_id').notNull(),
+    until: timestamp('until', { withTimezone: true }).notNull(),
+    actor: text('actor').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex('snooze_item_unique').on(t.itemId)],
+)

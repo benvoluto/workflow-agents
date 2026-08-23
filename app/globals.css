@@ -39,6 +39,20 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-line: var(--brand-line);
+  --color-overdue: var(--overdue);
+  --color-overdue-soft: var(--overdue-soft);
+  --color-blocked: var(--blocked);
+  --color-blocked-soft: var(--blocked-soft);
+  --color-due-soon: var(--due-soon);
+  --color-due-soon-soft: var(--due-soon-soft);
+  --color-change: var(--change);
+  --color-change-soft: var(--change-soft);
+  --color-link: var(--link);
+  --color-action: var(--action);
+  --color-heading: var(--heading);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,41 +63,83 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* SF Pro on Apple platforms, with a sane fallback everywhere else. */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+    'Helvetica Neue', system-ui, sans-serif;
+
+  --background: oklch(0.972 0.002 106);
+  --foreground: oklch(0.24 0.012 258);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.24 0.012 258);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.24 0.012 258);
+
+  /* Green is the product's colour: programs, versions, anything healthy. */
+  --brand: oklch(0.588 0.163 137);
+  --brand-soft: oklch(0.968 0.031 133);
+  --brand-line: oklch(0.885 0.076 133);
+
+  --primary: oklch(0.588 0.163 137);
+  --primary-foreground: oklch(0.995 0 0);
+  --secondary: oklch(0.962 0.002 106);
+  --secondary-foreground: oklch(0.24 0.012 258);
+  --muted: oklch(0.962 0.002 106);
+  --muted-foreground: oklch(0.548 0.014 258);
+  --heading: oklch(0.73 0.008 258);
+  --accent: oklch(0.962 0.002 106);
+  --accent-foreground: oklch(0.24 0.012 258);
+
+  /* One hue per reason, used for the chip, the tab and the card tint alike. */
+  --overdue: oklch(0.638 0.184 42);
+  --overdue-soft: oklch(0.964 0.032 73);
+  --blocked: oklch(0.702 0.145 79);
+  --blocked-soft: oklch(0.968 0.038 92);
+  --due-soon: oklch(0.556 0.201 262);
+  --due-soon-soft: oklch(0.966 0.021 258);
+  --change: oklch(0.548 0.219 288);
+  --change-soft: oklch(0.966 0.024 292);
+
+  --link: oklch(0.552 0.204 259);
+  --action: oklch(0.528 0.229 285);
+
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --border: oklch(0.918 0.003 258);
+  --input: oklch(0.918 0.003 258);
+  --ring: oklch(0.588 0.163 137);
+  --chart-1: oklch(0.588 0.163 137);
+  --chart-2: oklch(0.68 0.13 137);
+  --chart-3: oklch(0.76 0.1 137);
+  --chart-4: oklch(0.83 0.07 137);
+  --chart-5: oklch(0.89 0.05 137);
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-foreground: oklch(0.24 0.012 258);
+  --sidebar-primary: oklch(0.588 0.163 137);
+  --sidebar-primary-foreground: oklch(0.995 0 0);
+  --sidebar-accent: oklch(0.962 0.002 106);
+  --sidebar-accent-foreground: oklch(0.24 0.012 258);
+  --sidebar-border: oklch(0.918 0.003 258);
+  --sidebar-ring: oklch(0.588 0.163 137);
 }
 
 .dark {
+  /* The product is light-only by design; these keep a dark toggle from
+     rendering an unstyled page if one is ever added. */
+  --brand: oklch(0.72 0.15 137);
+  --brand-soft: oklch(0.28 0.05 137);
+  --brand-line: oklch(0.38 0.07 137);
+  --heading: oklch(0.6 0.01 258);
+  --overdue: oklch(0.72 0.16 42);
+  --overdue-soft: oklch(0.28 0.06 42);
+  --blocked: oklch(0.78 0.13 79);
+  --blocked-soft: oklch(0.28 0.05 79);
+  --due-soon: oklch(0.7 0.16 262);
+  --due-soon-soft: oklch(0.26 0.06 262);
+  --change: oklch(0.7 0.17 288);
+  --change-soft: oklch(0.26 0.07 288);
+  --link: oklch(0.7 0.16 259);
+  --action: oklch(0.7 0.18 285);
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

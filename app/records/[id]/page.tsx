@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { FileTextIcon } from '@phosphor-icons/react/dist/ssr'
+import { PageHeading } from '@/components/page-heading'
 import { migrateRecord, performTransition } from '@/app/actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -66,27 +68,24 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/r
 
   return (
     <div className="space-y-8">
-      <div>
-        <Link
-          href="/records"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          ← Records
-        </Link>
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              <span className="font-mono">{record.ref}</span> ·{' '}
-              <Link href={`/programs/${program.id}`} className="underline-offset-4 hover:underline">
-                {program.name}
-              </Link>{' '}
-              · spec v{record.specVersion}
-            </p>
-          </div>
-          <StateChip state={record.state} className="text-sm" />
-        </div>
-      </div>
+      <PageHeading
+        icon={<FileTextIcon size={30} />}
+        title={title}
+        back={{ href: '/records', label: 'Records' }}
+        aside={<StateChip state={record.state} className="text-sm" />}
+        meta={
+          <>
+            <span className="font-mono">{record.ref}</span> ·{' '}
+            <Link
+              href={`/programs/${program.id}`}
+              className="text-link underline-offset-4 hover:underline"
+            >
+              {program.name}
+            </Link>{' '}
+            · spec v{record.specVersion}
+          </>
+        }
+      />
 
       {error ? (
         <Alert variant="destructive">
@@ -151,7 +150,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/r
         <div className="space-y-8">
           <section>
             <h2 className="mb-3 text-sm font-semibold tracking-tight">Details</h2>
-            <dl className="divide-y overflow-hidden rounded-xl border bg-card">
+            <dl className="divide-y overflow-hidden rounded-2xl border bg-card">
               {spec.fields.map((field) => (
                 <div
                   key={field.key}
@@ -200,13 +199,13 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/r
               What {ROLE_LABELS[role]} can do
             </h2>
             {actions.length === 0 ? (
-              <p className="rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground">
+              <p className="rounded-2xl border border-dashed px-4 py-6 text-sm text-muted-foreground">
                 Nothing here belongs to {ROLE_LABELS[role]} while this record is in{' '}
                 {stateLabel(record.state).toLowerCase()}. Switch role in the header to see
                 the same record from somebody else&apos;s queue.
               </p>
             ) : (
-              <div className="space-y-3 rounded-xl border bg-card p-4">
+              <div className="space-y-3 rounded-2xl border bg-card p-4">
                 <div className="flex flex-wrap gap-2">
                   {actions.map(({ transition, enabled }) => (
                     <form key={transition.id} action={performTransition}>
@@ -248,7 +247,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/r
 
           <section>
             <h2 className="mb-3 text-sm font-semibold tracking-tight">History</h2>
-            <ol className="divide-y overflow-hidden rounded-xl border bg-card">
+            <ol className="divide-y overflow-hidden rounded-2xl border bg-card">
               {events.map((event) => (
                 <li key={event.id} className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3 text-sm">
                   <span className="w-40 shrink-0 text-xs text-muted-foreground tabular-nums">
@@ -270,7 +269,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/r
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-xl border bg-card p-4">
+          <section className="rounded-2xl border bg-card p-4">
             <h2 className="text-sm font-semibold tracking-tight">Rules in force</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               As of spec v{record.specVersion}.
@@ -346,7 +345,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/r
             ) : null}
           </section>
 
-          <section className="rounded-xl border bg-card p-4 text-sm">
+          <section className="rounded-2xl border bg-card p-4 text-sm">
             <h2 className="text-sm font-semibold tracking-tight">Summary</h2>
             <dl className="mt-3 space-y-2">
               <Row label="Created" value={shortDate(record.createdAt)} />

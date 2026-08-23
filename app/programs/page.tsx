@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import { BuildingsIcon } from '@phosphor-icons/react/dist/ssr'
 import { Badge } from '@/components/ui/badge'
+import { PageHeading } from '@/components/page-heading'
 import { StateChip } from '@/components/state-chip'
 import { getPrograms, getRecords } from '@/lib/queries'
 import { shortDate } from '@/lib/format'
@@ -9,7 +11,7 @@ export default async function ProgramsPage() {
 
   if (programs.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed px-6 py-16 text-center">
+      <div className="rounded-2xl border border-dashed px-6 py-16 text-center">
         <h1 className="text-lg font-medium">No programs yet</h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           Upload a spreadsheet or a contract from the header and one will appear here.
@@ -20,13 +22,12 @@ export default async function ProgramsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Programs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Each one is a specification extracted from documents, versioned every time
-          somebody approves a change.
-        </p>
-      </div>
+      <PageHeading
+        icon={<BuildingsIcon size={30} />}
+        title="Programs"
+        back={{ href: '/', label: 'To Review' }}
+        meta="Each one is a specification extracted from documents, versioned every time somebody approves a change."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         {programs.map((program) => {
@@ -37,7 +38,7 @@ export default async function ProgramsPage() {
             <Link
               key={program.id}
               href={`/programs/${program.id}`}
-              className="rounded-xl border bg-card p-5 transition-colors hover:bg-accent/50"
+              className="rounded-2xl border bg-card p-5 transition-colors hover:bg-accent/50"
             >
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-medium">{program.name}</h2>

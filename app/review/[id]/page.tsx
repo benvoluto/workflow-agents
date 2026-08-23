@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { GitDiffIcon } from '@phosphor-icons/react/dist/ssr'
+import { PageHeading } from '@/components/page-heading'
 import { approveDelta, discardDelta } from '@/app/actions'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -50,29 +52,28 @@ export default async function ReviewPage({ params }: PageProps<'/review/[id]'>) 
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {document?.name ?? 'Document'}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {changes.length} proposed {changes.length === 1 ? 'change' : 'changes'}
-            {unresolved.length > 0
-              ? ` and ${unresolved.length} unresolved ${unresolved.length === 1 ? 'clause' : 'clauses'}`
-              : ''}
-            {program ? ` against ${program.name} v${program.currentVersion}` : ' — this would create a new program'}
-            {delta.extractedBy === 'cached' ? ' · read from a cached extraction' : ''}
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeading
+        icon={<GitDiffIcon size={30} />}
+        title={document?.name ?? 'Document'}
+        back={{ href: '/', label: 'To Review' }}
+        meta={`${changes.length} proposed ${changes.length === 1 ? 'change' : 'changes'}${
+          unresolved.length > 0
+            ? ` and ${unresolved.length} unresolved ${unresolved.length === 1 ? 'clause' : 'clauses'}`
+            : ''
+        }${
+          program
+            ? ` against ${program.name} v${program.currentVersion}`
+            : ' — this would create a new program'
+        }${delta.extractedBy === 'cached' ? ' · read from a cached extraction' : ''}`}
+        aside={
           <form action={discardDelta}>
             <input type="hidden" name="deltaId" value={delta.id} />
             <Button type="submit" variant="ghost" size="sm">
               Discard
             </Button>
           </form>
-        </div>
-      </div>
+        }
+      />
 
       <Alert>
         <AlertTitle>Nothing here has been applied</AlertTitle>
@@ -92,7 +93,7 @@ export default async function ReviewPage({ params }: PageProps<'/review/[id]'>) 
             const target = opTarget(op)
             const before = baseSpec ? currentElement(baseSpec, op) : null
             return (
-              <article key={index} className="overflow-hidden rounded-xl border bg-card">
+              <article key={index} className="overflow-hidden rounded-2xl border bg-card">
                 <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-3">
                   <label className="flex cursor-pointer items-center gap-2">
                     <input
@@ -147,7 +148,7 @@ export default async function ReviewPage({ params }: PageProps<'/review/[id]'>) 
             <h2 className="mb-3 text-sm font-semibold tracking-tight">
               Unresolved — recorded, not guessed
             </h2>
-            <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+            <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
               {unresolved.map((op) => {
                 const index = ops.indexOf(op)
                 if (op.op !== 'unresolved') return null
@@ -186,7 +187,7 @@ export default async function ReviewPage({ params }: PageProps<'/review/[id]'>) 
         ) : null}
 
         {ops.length === 0 ? (
-          <p className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+          <p className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
             Nothing in this document changes the program.
           </p>
         ) : (

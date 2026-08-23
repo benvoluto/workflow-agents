@@ -1,5 +1,8 @@
 import Link from 'next/link'
+import { ListChecksIcon } from '@phosphor-icons/react/dist/ssr'
 import { Badge } from '@/components/ui/badge'
+import { FilterTabs, type Tab } from '@/components/filter-tabs'
+import { PageHeading } from '@/components/page-heading'
 import {
   Table,
   TableBody,
@@ -13,7 +16,7 @@ import { attention } from '@/lib/engine/attention'
 import { ageLabel, money } from '@/lib/format'
 import { getPrograms, getRecords, sharedParties, toContexts } from '@/lib/queries'
 import { owningRole } from '@/lib/engine/runtime'
-import { ROLE_LABELS } from '@/lib/spec/types'
+import { ROLE_LABELS, stateLabel } from '@/lib/spec/types'
 import { cn } from '@/lib/utils'
 
 export default async function RecordsPage({ searchParams }: PageProps<'/records'>) {
@@ -36,45 +39,55 @@ export default async function RecordsPage({ searchParams }: PageProps<'/records'
 
   const states = [...new Set(records.map((r) => r.state))].sort()
 
+  const tabs: Tab[] = [
+    {
+      key: 'all',
+      label: 'All',
+      href: '/records',
+      active: !programFilter && !stateFilter && !onlyFlagged,
+    },
+    ...programs.map((p) => ({
+      key: p.id,
+      label: p.name,
+      href: `/records?program=${p.id}`,
+      active: programFilter === p.id,
+      tone: 'brand' as const,
+    })),
+    ...states.map((s) => ({
+      key: s,
+      label: stateLabel(s),
+      href: `/records?state=${s}`,
+      active: stateFilter === s,
+    })),
+    {
+      key: 'flagged',
+      label: 'Needs attention',
+      count: flaggedIds.size,
+      href: '/records?flagged=1',
+      active: onlyFlagged,
+      tone: 'overdue' as const,
+    },
+  ]
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Records</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {visible.length} of {records.length} across{' '}
-          {programs.length === 1 ? '1 program' : `${programs.length} programs`}.
-        </p>
-      </div>
+      <PageHeading
+        icon={<ListChecksIcon size={30} />}
+        title="Records"
+        back={{ href: '/', label: 'To Review' }}
+        meta={`${visible.length} of ${records.length} across ${
+          programs.length === 1 ? '1 program' : `${programs.length} programs`
+        }`}
+      />
 
-      <div className="flex flex-wrap gap-2">
-        <FilterChip href="/records" active={!programFilter && !stateFilter && !onlyFlagged}>
-          All
-        </FilterChip>
-        {programs.map((p) => (
-          <FilterChip
-            key={p.id}
-            href={`/records?program=${p.id}`}
-            active={programFilter === p.id}
-          >
-            {p.name}
-          </FilterChip>
-        ))}
-        {states.map((s) => (
-          <FilterChip key={s} href={`/records?state=${s}`} active={stateFilter === s}>
-            {s.replace(/_/g, ' ')}
-          </FilterChip>
-        ))}
-        <FilterChip href="/records?flagged=1" active={onlyFlagged}>
-          Needs attention ({flaggedIds.size})
-        </FilterChip>
-      </div>
+      <FilterTabs tabs={tabs} />
 
       {visible.length === 0 ? (
-        <p className="rounded-xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
+        <p className="rounded-2xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
           No records match these filters.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="overflow-x-auto rounded-2xl border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -162,29 +175,5 @@ export default async function RecordsPage({ searchParams }: PageProps<'/records'
         </div>
       )}
     </div>
-  )
-}
-
-function FilterChip({
-  href,
-  active,
-  children,
-}: {
-  href: string
-  active: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors',
-        active
-          ? 'border-foreground bg-foreground text-background'
-          : 'bg-card text-muted-foreground hover:text-foreground',
-      )}
-    >
-      {children}
-    </Link>
   )
 }
