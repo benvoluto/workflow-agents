@@ -70,7 +70,7 @@ export function AttentionCard({
   return (
     <article
       className={cn(
-        'flex flex-col overflow-hidden rounded-3xl sm:flex-row',
+        'flex flex-col overflow-hidden rounded-3xl border-2 border-[#EEEEED] sm:flex-row',
         tone.panel,
         snoozedUntil && 'opacity-60',
       )}
