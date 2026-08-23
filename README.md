@@ -31,12 +31,27 @@ pnpm dev
 
 Extraction runs on Claude Opus 5. Two routes, resolved in `lib/ingest/model.ts`:
 
-- **`ANTHROPIC_API_KEY` set** — calls the Anthropic API directly.
+- **`ANTHROPIC_API_KEY` set** — calls the Anthropic API directly. This is the
+  route in use.
 - **Otherwise** — routes through Vercel AI Gateway using OIDC, so no provider key
-  is needed. This requires paid AI Gateway credits on the team; Anthropic models
-  are not available on the free tier.
+  is needed. This needs paid AI Gateway credits on the team; Anthropic models are
+  not available on the Gateway's free tier.
 
 Override the model with `EXTRACTION_MODEL`.
+
+### The wire format is not the domain model
+
+Structured output will not compile a schema that is self-referencing, uses
+positional tuples, carries more than sixteen union-typed fields, or grows past a
+grammar budget. The domain model breaks all four: its expression language is
+recursive, comparisons are pairs, and nearly every element has a nullable
+`source`.
+
+So `lib/ingest/schemas.ts` defines a separate flat wire format with explicit
+sentinels, and normalises it into the real types before anything is stored. Delta
+extraction also splits into two concurrent calls — one for structure, one for
+policy — which keeps each schema inside the budget and gives each call a single
+job.
 
 ## The demo
 
@@ -44,9 +59,9 @@ Program A is seeded at v2 with twelve awards in flight, so the Inbox has
 something to say on first load. Steps 4 and 5 run live against the real
 extractor.
 
-1. **Inbox.** Three payments past their SLO, two approaching, two awaiting a CFO
-   signature, one missing its evidence link. Switch role in the header — the same
-   records, three different queues.
+1. **To Review.** Three payments past their SLO, two approaching, two awaiting a
+   CFO signature, one missing its evidence link. Switch role in the header — the
+   same records, three different queues.
 2. **Any record.** Fields, available actions with the reasons they are blocked,
    and full history.
 3. **Program.** The spec rendered readably. Click any clause chip for the
@@ -69,14 +84,31 @@ dialog.
 | `lib/engine/runtime.ts` | `availableTransitions`, `validateTransition`, field requirements |
 | `lib/engine/attention.ts` | `attention(programs, records, now)` — the whole queue, one pure function |
 | `lib/ingest/` | Extraction prompts, the model route, the fixture fallback |
-| `lib/db/schema.ts` | Six tables: documents, programs, program_versions, records, events, deltas |
+| `lib/db/schema.ts` | Seven tables: documents, programs, program_versions, records, events, deltas, snoozes |
 | `app/actions.ts` | Every write the app can perform |
 | `samples/` | The sample documents |
+| `components/` | The interface: split queue cards, program cards, the funnel, the explain and provenance panels |
 | `design/figma-sample-data.md` | Copy and data for designing the screens |
+| `design/programofficerview.png` | The design this interface follows |
 
 Versions are rows, never updates. Records pin to the version they are being run
 under, and moving one forward is an explicit decision with an event to show for
 it.
+
+## Interface
+
+The home screen is two columns: the queue on the left, the programs on the
+right, with a question box and quick actions along the bottom. Icons are
+Phosphor and the type is SF Pro, per `design/programofficerview.png`.
+
+A queue card is one rounded container split down the middle — the tinted left
+carries the urgency and names the problem, the white right says what to do about
+it. **Explain** opens the clause the item traces to, quoted from the document
+that put it there. **Snooze** hides one item for three days without pausing the
+clock behind it, so it returns on its own.
+
+The Program Officer sees the whole queue with each item naming its owner;
+Finance and the CFO see only what is theirs. Switch in the header.
 
 ## Scripts
 

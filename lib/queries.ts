@@ -124,13 +124,6 @@ export async function getDocument(id: string) {
   return row ?? null
 }
 
-export async function getDocuments() {
-  return db
-    .select()
-    .from(schema.documents)
-    .orderBy(desc(schema.documents.uploadedAt))
-}
-
 /**
  * Providers appearing under more than one program. The plan deliberately stops
  * short of real cross-program conflict detection; a shared-party flag is the
