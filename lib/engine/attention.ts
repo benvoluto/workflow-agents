@@ -37,8 +37,20 @@ export type ProgramContext = {
 
 const DAY = 24 * 60 * 60 * 1000
 
+function startOfDay(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+}
+
+/**
+ * Calendar days between two instants, not elapsed 24-hour periods.
+ *
+ * This is how people read a deadline: something due on the 25th is "2 days
+ * left" all day on the 23rd. Flooring elapsed milliseconds instead would make
+ * the same record drift from "2 days left" to "1 day left" partway through an
+ * afternoon, and would make seeded demo data slip by a day within minutes.
+ */
 function daysBetween(from: Date, to: Date): number {
-  return Math.floor((to.getTime() - from.getTime()) / DAY)
+  return Math.round((startOfDay(to) - startOfDay(from)) / DAY)
 }
 
 function titleOf(spec: Spec, record: RecordLike): string {
@@ -111,7 +123,7 @@ export function attention(
           id: `${record.id}:clock:${clock.id}:breach`,
           urgency: 'overdue',
           reason: 'Clock breach',
-          headline: `${title} — ${clock.label.toLowerCase()}`,
+          headline: `${title} — ${prettyState(record.state)} for ${elapsed} days`,
           subline: `${clock.label} of ${clock.days} days breached · due ${fmtDate(due)}`,
           ownerRole: clock.ownerRole,
           dueAt: due,
@@ -124,7 +136,7 @@ export function attention(
           id: `${record.id}:clock:${clock.id}:warn`,
           urgency: 'due_soon',
           reason: 'Clock warning',
-          headline: `${title} — ${clock.label.toLowerCase()}`,
+          headline: `${title} — ${prettyState(record.state)} for ${elapsed} days`,
           subline: `Day ${elapsed} of ${clock.days} · due ${fmtDate(due)}`,
           ownerRole: clock.ownerRole,
           dueAt: due,
@@ -145,7 +157,7 @@ export function attention(
         id: `${record.id}:rule:${rule.id}`,
         urgency: 'blocked',
         reason: 'Awaiting approval',
-        headline: `${title} — ${rule.label.toLowerCase()}`,
+        headline: `${title} — awaiting ${needed}`,
         subline: `Needs ${needed}${clause}`,
         ownerRole: rule.role ?? null,
         dueAt: null,
@@ -164,7 +176,7 @@ export function attention(
         id: `${record.id}:incomplete`,
         urgency: 'blocked',
         reason: 'Missing information',
-        headline: `${title} — ${names.toLowerCase()} ${missing.length === 1 ? 'is' : 'are'} empty`,
+        headline: `${title} — ${names} ${missing.length === 1 ? 'is' : 'are'} missing`,
         subline: `Cannot leave ${prettyState(record.state)} until ${names} ${missing.length === 1 ? 'is' : 'are'} filled`,
         ownerRole: forward[0]?.role ?? null,
         dueAt: null,
