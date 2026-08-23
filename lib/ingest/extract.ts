@@ -3,12 +3,8 @@ import { z } from 'zod'
 import { deltaSchema, type DeltaOp } from '@/lib/spec/delta'
 import { specSchema, type Spec } from '@/lib/spec/types'
 import { fixtureKey, readFixture } from './fixtures'
+import { extractionModel } from './model'
 
-/**
- * Opus 5, routed through Vercel AI Gateway. Authentication is OIDC on Vercel and
- * via the token in .env.local locally, so no provider key lives in this repo.
- */
-export const MODEL = 'anthropic/claude-opus-5'
 
 const TIMEOUT_MS = 90_000
 
@@ -92,7 +88,7 @@ export async function inferSpecFromTable(input: {
   const key = fixtureKey(['infer-spec', input.fileName, input.tableText])
   const { value, source } = await liveOrCached(key, async () => {
     const { object } = await generateObject({
-      model: MODEL,
+      model: extractionModel(),
       schema: specSchema,
       abortSignal: withTimeout(TIMEOUT_MS),
       system: `You turn a spreadsheet of in-flight work into a minimal, working program specification.
@@ -155,7 +151,7 @@ export async function extractDelta(input: {
 
   const { value, source } = await liveOrCached(key, async () => {
     const { object } = await generateObject({
-      model: MODEL,
+      model: extractionModel(),
       schema: deltaSchema,
       abortSignal: withTimeout(TIMEOUT_MS),
       system: `You read a policy document and express what it changes about a running
