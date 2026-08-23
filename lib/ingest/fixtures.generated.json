@@ -1,1 +1,1085 @@
-{}
+{
+  "b171ae0388c62614e002aa229e3ff226": {
+    "name": "Award Tracker",
+    "entity": "Award",
+    "fields": [
+      {
+        "key": "provider",
+        "label": "Provider",
+        "type": "text",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      },
+      {
+        "key": "amount",
+        "label": "Award amount",
+        "type": "money",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      },
+      {
+        "key": "approval_date",
+        "label": "Approval date",
+        "type": "date",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      },
+      {
+        "key": "milestone_count",
+        "label": "Milestone count",
+        "type": "number",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      },
+      {
+        "key": "contact",
+        "label": "Contact email",
+        "type": "text",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      }
+    ],
+    "states": [
+      "draft",
+      "approved",
+      "closed"
+    ],
+    "initial": "draft",
+    "transitions": [
+      {
+        "id": "approve",
+        "from": "draft",
+        "to": "approved",
+        "label": "Approve award",
+        "role": "program_officer",
+        "guard": null,
+        "source": null
+      },
+      {
+        "id": "close",
+        "from": "approved",
+        "to": "closed",
+        "label": "Close award",
+        "role": "program_officer",
+        "guard": null,
+        "source": null
+      }
+    ],
+    "rules": [],
+    "clocks": [],
+    "unresolved": []
+  },
+  "014d241c88ee349e153d7cf270237682": {
+    "name": "Awards Program",
+    "entity": "Award",
+    "fields": [
+      {
+        "key": "provider",
+        "label": "Provider",
+        "type": "text",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      },
+      {
+        "key": "amount",
+        "label": "Award amount",
+        "type": "money",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      },
+      {
+        "key": "approval_date",
+        "label": "Approval date",
+        "type": "date",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      },
+      {
+        "key": "contact",
+        "label": "Contact email",
+        "type": "text",
+        "required": true,
+        "requiredFrom": null,
+        "options": null,
+        "source": null
+      }
+    ],
+    "states": [
+      "submitted",
+      "approved",
+      "disbursed"
+    ],
+    "initial": "submitted",
+    "transitions": [
+      {
+        "id": "approve",
+        "from": "submitted",
+        "to": "approved",
+        "label": "Approve",
+        "role": "program_officer",
+        "guard": null,
+        "source": null
+      },
+      {
+        "id": "disburse",
+        "from": "approved",
+        "to": "disbursed",
+        "label": "Disburse",
+        "role": "program_officer",
+        "guard": null,
+        "source": null
+      }
+    ],
+    "rules": [],
+    "clocks": [],
+    "unresolved": []
+  },
+  "164014c93394bfd555e08b3b195d1444": {
+    "ops": [
+      {
+        "op": "add_state",
+        "summary": "Adds a state for evidence that has been sent back to the provider as materially incomplete.",
+        "state": "evidence_returned",
+        "after": null
+      },
+      {
+        "op": "add_field",
+        "summary": "Records the provider's acknowledgement of the amendment against the Award.",
+        "field": {
+          "key": "provider_acknowledgement",
+          "label": "Provider acknowledgement",
+          "type": "checkbox",
+          "required": true,
+          "requiredFrom": "approved",
+          "options": null,
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "5.2",
+            "quote": "A provider shall acknowledge this Amendment before any further tranche is released against their Award. The acknowledgement shall be recorded against the Award."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Captures the written reasons given when incomplete evidence is returned to the provider.",
+        "field": {
+          "key": "evidence_return_reasons",
+          "label": "Reasons for returning evidence",
+          "type": "textarea",
+          "required": true,
+          "requiredFrom": "evidence_returned",
+          "options": null,
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "4.3",
+            "quote": "Evidence found to be materially incomplete shall be returned to the provider with reasons."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Records the form in which evidence must be furnished, as specified by the administering body.",
+        "field": {
+          "key": "evidence_form",
+          "label": "Specified evidence form",
+          "type": "text",
+          "required": false,
+          "requiredFrom": null,
+          "options": null,
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "4.2",
+            "quote": "The administering body may specify the form in which evidence is to be furnished."
+          }
+        }
+      },
+      {
+        "op": "modify_transition",
+        "summary": "Releasing a tranche now also requires the provider's acknowledgement of the amendment to be recorded.",
+        "transition": {
+          "id": "release_tranche",
+          "from": "approved",
+          "to": "tranche_pending",
+          "label": "Release tranche",
+          "role": "program_officer",
+          "guard": {
+            "and": [
+              {
+                "gt": [
+                  "amount",
+                  {
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "eq": [
+                  "provider_acknowledgement",
+                  {
+                    "value": true
+                  }
+                ]
+              }
+            ]
+          },
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "5.2",
+            "quote": "A provider shall acknowledge this Amendment before any further tranche is released against their Award. The acknowledgement shall be recorded against the Award."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "Lets the Program Officer send materially incomplete evidence back to the provider, moving the Award to the returned state.",
+        "transition": {
+          "id": "return_evidence",
+          "from": "evidence_review",
+          "to": "evidence_returned",
+          "label": "Return evidence to provider",
+          "role": "program_officer",
+          "guard": {
+            "isSet": "evidence_return_reasons"
+          },
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "4.3",
+            "quote": "Evidence found to be materially incomplete shall be returned to the provider with reasons."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "Lets resubmitted evidence move the Award back from the returned state into evidence review.",
+        "transition": {
+          "id": "resubmit_evidence",
+          "from": "evidence_returned",
+          "to": "evidence_review",
+          "label": "Resubmit evidence",
+          "role": "program_officer",
+          "guard": {
+            "isSet": "evidence_url"
+          },
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "4.4",
+            "quote": "Evidence of completion shall be submitted promptly upon certification."
+          }
+        }
+      },
+      {
+        "op": "modify_rule",
+        "summary": "The CFO counter-signature is now required for any disbursement above 25000 instead of above 50000.",
+        "rule": {
+          "id": "dual_signature",
+          "label": "Dual signature",
+          "when": {
+            "gt": [
+              "amount",
+              {
+                "value": 25000
+              }
+            ]
+          },
+          "require": [
+            "cfo_signature"
+          ],
+          "role": "cfo",
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "2.1",
+            "quote": "Clause 4.2 is amended such that the threshold shall read twenty-five thousand dollars ($25,000). Any disbursement in excess of twenty-five thousand dollars ($25,000) shall require the counter-signature of the Chief Financial Officer."
+          }
+        }
+      },
+      {
+        "op": "add_rule",
+        "summary": "Before any further tranche is released, the provider's acknowledgement of the Amendment must be recorded against the Award.",
+        "rule": {
+          "id": "provider_acknowledgement",
+          "label": "Provider acknowledgement of Amendment 01",
+          "when": {
+            "isSet": "provider_acknowledgement"
+          },
+          "require": [
+            "provider_acknowledgement"
+          ],
+          "role": "program_officer",
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "5.2",
+            "quote": "A provider shall acknowledge this Amendment before any further tranche is released against their Award. The acknowledgement shall be recorded against the Award."
+          }
+        }
+      },
+      {
+        "op": "modify_clock",
+        "summary": "Funds must now be released within 7 days of the tranche being authorised, with escalation after 5 days instead of 10 and 7.",
+        "clock": {
+          "id": "disbursement_slo",
+          "label": "Disbursement SLO",
+          "fromState": "tranche_pending",
+          "days": 7,
+          "warnAt": 5,
+          "ownerRole": "finance",
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "3.1",
+            "quote": "Clause 5.4 is amended such that funds shall be released to the provider within seven (7) days of the tranche being authorised. The escalation point in that clause is correspondingly amended to five days."
+          }
+        }
+      },
+      {
+        "op": "unresolved",
+        "summary": "Providers must be notified of the Amendment within ten days of its effective date, but this runs from a fixed calendar date rather than any Award state, so it cannot be expressed as a per-Award clock.",
+        "item": {
+          "id": "provider_notification_window",
+          "summary": "Ten-day provider notification deadline is anchored to the Amendment's effective date, not to an Award state.",
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "5.1",
+            "quote": "Providers shall be notified of this Amendment within ten days of its effective date."
+          }
+        }
+      },
+      {
+        "op": "unresolved",
+        "summary": "Evidence must be submitted 'promptly' upon certification, but no time period is given.",
+        "item": {
+          "id": "evidence_submission_promptness",
+          "summary": "Obligation to submit evidence promptly has no stated deadline to enforce.",
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "4.4",
+            "quote": "Evidence of completion shall be submitted promptly upon certification."
+          }
+        }
+      },
+      {
+        "op": "unresolved",
+        "summary": "Materially incomplete evidence must be returned to the provider with reasons, but the document gives no test for 'materially incomplete' and no time limit.",
+        "item": {
+          "id": "incomplete_evidence_return",
+          "summary": "Return of materially incomplete evidence has no defined threshold, owner, or deadline.",
+          "source": {
+            "document": "amendment-01.md",
+            "clause": "4.3",
+            "quote": "Evidence found to be materially incomplete shall be returned to the provider with reasons."
+          }
+        }
+      }
+    ]
+  },
+  "a6ed66c33c59475757bf9f91f97e3727": {
+    "ops": [
+      {
+        "op": "add_state",
+        "summary": "An 'approved' state is introduced for Awards that have been approved by a Program Officer but not yet had funds released.",
+        "state": "approved",
+        "after": null
+      },
+      {
+        "op": "add_state",
+        "summary": "A 'tranche_pending' state is introduced for Awards where a tranche has been released but funds are not yet recorded as disbursed.",
+        "state": "tranche_pending",
+        "after": null
+      },
+      {
+        "op": "add_state",
+        "summary": "An 'evidence_review' state is introduced for Awards awaiting review of the provider's milestone completion evidence.",
+        "state": "evidence_review",
+        "after": null
+      },
+      {
+        "op": "add_state",
+        "summary": "A 'paid' state is introduced for Awards whose milestone evidence has been accepted.",
+        "state": "paid",
+        "after": null
+      },
+      {
+        "op": "add_field",
+        "summary": "Records a durable link to the provider's documentation evidencing milestone completion, needed once the Award is in evidence review.",
+        "field": {
+          "key": "evidence_url",
+          "label": "Evidence link",
+          "type": "url",
+          "required": false,
+          "requiredFrom": "evidence_review",
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.5",
+            "quote": "Evidence shall be furnished as a durable link to the provider's documentation."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Records the Chief Financial Officer's counter-signature against the Award.",
+        "field": {
+          "key": "cfo_countersignature",
+          "label": "CFO counter-signature",
+          "type": "signature",
+          "required": false,
+          "requiredFrom": null,
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.2",
+            "quote": "Any disbursement in excess of fifty thousand dollars ($50,000) shall require the counter-signature of the Chief Financial Officer, recorded prior to release of funds."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Records which individual approved the Award, so it can be distinguished from the counter-signatory.",
+        "field": {
+          "key": "approved_by",
+          "label": "Approved by",
+          "type": "text",
+          "required": false,
+          "requiredFrom": "approved",
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.3",
+            "quote": "The counter-signature required under clause 4.2 may not be given by the same individual who approved the Award."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Records the date Finance registered the disbursement of funds to the provider.",
+        "field": {
+          "key": "disbursement_date",
+          "label": "Disbursement date",
+          "type": "date",
+          "required": false,
+          "requiredFrom": "evidence_review",
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.4",
+            "quote": "Once funds have been transmitted to the provider, Finance shall record the disbursement, and the Award moves from *tranche pending* to *evidence review*."
+          }
+        }
+      },
+      {
+        "op": "modify_transition",
+        "summary": "The opening transition now moves an Award from 'new' to the new 'approved' state, performed by a Program Officer approving it.",
+        "transition": {
+          "id": "start",
+          "from": "new",
+          "to": "approved",
+          "label": "Approve",
+          "role": "program_officer",
+          "guard": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.1",
+            "quote": "Every Award shall be approved by a Program Officer prior to any release of funds."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "A Program Officer releases the first tranche, moving the Award from 'approved' to 'tranche pending', which is barred for Awards of zero or negative value.",
+        "transition": {
+          "id": "release_tranche",
+          "from": "approved",
+          "to": "tranche_pending",
+          "label": "Release tranche",
+          "role": "program_officer",
+          "guard": {
+            "gt": [
+              "amount",
+              {
+                "value": 0
+              }
+            ]
+          },
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.1",
+            "quote": "Upon approval of an Award, the Program Officer may release the first tranche. An Award moves from *approved* to *tranche pending* at the point of release."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "Finance records the disbursement, moving the Award from 'tranche pending' to 'evidence review'.",
+        "transition": {
+          "id": "record_disbursement",
+          "from": "tranche_pending",
+          "to": "evidence_review",
+          "label": "Record disbursement",
+          "role": "finance",
+          "guard": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.4",
+            "quote": "Once funds have been transmitted to the provider, Finance shall record the disbursement, and the Award moves from *tranche pending* to *evidence review*."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "A Program Officer accepting the provider's evidence moves the Award from 'evidence review' to 'paid', which requires the evidence link to be recorded.",
+        "transition": {
+          "id": "accept_evidence",
+          "from": "evidence_review",
+          "to": "paid",
+          "label": "Accept evidence",
+          "role": "program_officer",
+          "guard": {
+            "isSet": "evidence_url"
+          },
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.6",
+            "quote": "Where the Program Officer accepts the evidence furnished, the Award moves from *evidence review* to *paid*."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "Rejecting the evidence keeps the Award in 'evidence review'.",
+        "transition": {
+          "id": "reject_evidence",
+          "from": "evidence_review",
+          "to": "evidence_review",
+          "label": "Reject evidence",
+          "role": "program_officer",
+          "guard": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.7",
+            "quote": "Where evidence is rejected, the Award returns to *evidence review* and the provider shall be notified within two working days."
+          }
+        }
+      },
+      {
+        "op": "modify_transition",
+        "summary": "Closure now happens from the 'paid' state rather than from 'active', and is performed by the Program Officer.",
+        "transition": {
+          "id": "finish",
+          "from": "paid",
+          "to": "closed",
+          "label": "Close",
+          "role": "program_officer",
+          "guard": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "6.1",
+            "quote": "An Award shall be closed by the Program Officer once all Milestones have been paid and all evidence has been accepted."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "A closed Award can be reopened back to the approved state on written direction of the administering body.",
+        "transition": {
+          "id": "reopen",
+          "from": "closed",
+          "to": "approved",
+          "label": "Reopen",
+          "role": "program_officer",
+          "guard": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "6.2",
+            "quote": "Closed Awards may be reopened only by written direction of the administering body."
+          }
+        }
+      },
+      {
+        "op": "add_rule",
+        "summary": "Awards over $50,000 need the Chief Financial Officer's counter-signature recorded before any funds are released.",
+        "rule": {
+          "id": "cfo_countersignature",
+          "label": "CFO counter-signature for disbursements over 50000",
+          "when": {
+            "gt": [
+              "amount",
+              {
+                "value": 50000
+              }
+            ]
+          },
+          "require": [
+            "cfo_countersignature"
+          ],
+          "role": "cfo",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.2",
+            "quote": "Any disbursement in excess of fifty thousand dollars ($50,000) shall require the counter-signature of the Chief Financial Officer, recorded prior to release of funds."
+          }
+        }
+      },
+      {
+        "op": "add_rule",
+        "summary": "Every Award must carry a recorded Program Officer approval before any funds go out.",
+        "rule": {
+          "id": "program_officer_approval",
+          "label": "Program Officer approval before release of funds",
+          "when": {
+            "isSet": "approval_date"
+          },
+          "require": [
+            "approval_date"
+          ],
+          "role": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.1",
+            "quote": "Every Award shall be approved by a Program Officer prior to any release of funds."
+          }
+        }
+      },
+      {
+        "op": "add_rule",
+        "summary": "An Award with one or more Milestones cannot be marked paid until a durable evidence link is recorded against it.",
+        "rule": {
+          "id": "evidence_before_paid",
+          "label": "Evidence of completion recorded before payment",
+          "when": {
+            "gte": [
+              "milestone_count",
+              {
+                "value": 1
+              }
+            ]
+          },
+          "require": [
+            "evidence_link"
+          ],
+          "role": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.5",
+            "quote": "Where an Award carries one or more Milestones, evidence of completion shall be recorded against the Award before it may be marked as paid."
+          }
+        }
+      },
+      {
+        "op": "add_clock",
+        "summary": "Providers must be told of an approval decision within five days.",
+        "clock": {
+          "id": "approval_notification",
+          "label": "Notify provider of approval",
+          "fromState": "approved",
+          "days": 5,
+          "warnAt": 4,
+          "ownerRole": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "5.2",
+            "quote": "Providers shall be notified of approval within five days of the decision."
+          }
+        }
+      },
+      {
+        "op": "add_clock",
+        "summary": "Provider evidence must be reviewed within fifteen days of it arriving.",
+        "clock": {
+          "id": "evidence_review_slo",
+          "label": "Review submitted evidence",
+          "fromState": "evidence_review",
+          "days": 15,
+          "warnAt": 12,
+          "ownerRole": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "5.3",
+            "quote": "Evidence submitted by a provider shall be reviewed within fifteen days of receipt."
+          }
+        }
+      },
+      {
+        "op": "add_clock",
+        "summary": "Authorised tranches must be paid out within ten days, with escalation to the Finance lead at day seven.",
+        "clock": {
+          "id": "disbursement_slo",
+          "label": "Release funds after tranche authorisation",
+          "fromState": "tranche_pending",
+          "days": 10,
+          "warnAt": 7,
+          "ownerRole": "finance",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "5.4",
+            "quote": "Funds shall be released to the provider within ten (10) days of the tranche being authorised. Where seven days have elapsed without release, the matter shall be escalated to the Finance lead."
+          }
+        }
+      },
+      {
+        "op": "add_clock",
+        "summary": "When evidence is rejected the provider must be notified within two working days (recorded here as 2 days, since the clock counts plain days).",
+        "clock": {
+          "id": "evidence_rejection_notice",
+          "label": "Notify provider of rejected evidence",
+          "fromState": "evidence_review",
+          "days": 2,
+          "warnAt": 1,
+          "ownerRole": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.7",
+            "quote": "Where evidence is rejected, the Award returns to *evidence review* and the provider shall be notified within two working days."
+          }
+        }
+      },
+      {
+        "op": "unresolved",
+        "summary": "Tranches may not be released on a zero or negative Award, but this is a prohibition on a value rather than a field that can be required, so it needs a reviewer decision on how to enforce it.",
+        "item": {
+          "id": "nonpositive_award_block",
+          "summary": "Clause 3.2 bars release against an Award of zero or negative value; the rule form here can only require fields to be filled, so the minimum-value check cannot be expressed as written.",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.2",
+            "quote": "No tranche shall be released against an Award whose value is zero or negative."
+          }
+        }
+      },
+      {
+        "op": "unresolved",
+        "summary": "Only one tranche may be in flight per provider, but nothing records how many tranches are currently outstanding.",
+        "item": {
+          "id": "one_tranche_in_flight",
+          "summary": "Clause 3.3 caps in-flight tranches at one per provider, but there is no recorded count of outstanding tranches to test against, and the limit is per provider rather than per Award.",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.3",
+            "quote": "A provider may hold no more than one tranche in flight at any time."
+          }
+        }
+      },
+      {
+        "op": "unresolved",
+        "summary": "The CFO counter-signer must be a different person from the approver, which is an identity comparison the rule form cannot express.",
+        "item": {
+          "id": "countersignature_separation_of_duties",
+          "summary": "Clause 4.3 requires the counter-signatory and the approver to be different individuals; this compares two identities rather than checking that a field is filled, so it cannot be encoded as a condition.",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.3",
+            "quote": "The counter-signature required under clause 4.2 may not be given by the same individual who approved the Award."
+          }
+        }
+      },
+      {
+        "op": "unresolved",
+        "summary": "Closure depends on every Milestone being paid and every piece of evidence accepted, but nothing tracks paid milestones.",
+        "item": {
+          "id": "closure_all_milestones_paid",
+          "summary": "Clause 6.1 gates closure on all Milestones being paid and all evidence accepted, but there is no count of paid Milestones or accepted evidence items to compare against the milestone count.",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "6.1",
+            "quote": "An Award shall be closed by the Program Officer once all Milestones have been paid and all evidence has been accepted."
+          }
+        }
+      },
+      {
+        "op": "unresolved",
+        "summary": "Reopening a closed Award needs written direction from the administering body, but no such authorisation record or role is defined.",
+        "item": {
+          "id": "reopen_written_direction",
+          "summary": "Clause 6.2 permits reopening only on written direction of the administering body; there is no field capturing that direction and 'administering body' is not one of the available roles.",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "6.2",
+            "quote": "Closed Awards may be reopened only by written direction of the administering body."
+          }
+        }
+      }
+    ]
+  },
+  "0978c04540de638e66ea47a4c73edabb": {
+    "ops": [
+      {
+        "op": "add_state",
+        "summary": "An Award starts life in an approved state once a Program Officer has approved it.",
+        "state": "approved",
+        "after": null
+      },
+      {
+        "op": "add_state",
+        "summary": "An Award that has been queued for payment but not yet paid sits in payment pending.",
+        "state": "payment_pending",
+        "after": null
+      },
+      {
+        "op": "add_state",
+        "summary": "An Award whose payment has been issued in full is paid.",
+        "state": "paid",
+        "after": null
+      },
+      {
+        "op": "add_state",
+        "summary": "An Award that has been paid and whose receipt has been confirmed is closed.",
+        "state": "closed",
+        "after": null
+      },
+      {
+        "op": "add_field",
+        "summary": "Records the entity named in the Award as the recipient.",
+        "field": {
+          "key": "recipient_name",
+          "label": "Recipient",
+          "type": "text",
+          "required": true,
+          "requiredFrom": null,
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "2.2",
+            "quote": "\"Recipient\" means the entity named in the Award."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Records the amount of funds allocated to the recipient under the Award.",
+        "field": {
+          "key": "award_amount",
+          "label": "Award amount",
+          "type": "money",
+          "required": true,
+          "requiredFrom": null,
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "2.1",
+            "quote": "\"Award\" means an approved allocation of funds to a single recipient under this program."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Records that the Award is paid as one single payment rather than in stages.",
+        "field": {
+          "key": "single_payment_in_full",
+          "label": "Payment issued in full as a single payment",
+          "type": "checkbox",
+          "required": false,
+          "requiredFrom": "payment_pending",
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.2",
+            "quote": "Finance shall issue the payment in full."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Records the recipient's confirmation that payment was received, which is needed before closing.",
+        "field": {
+          "key": "receipt_confirmed",
+          "label": "Recipient has confirmed receipt",
+          "type": "checkbox",
+          "required": false,
+          "requiredFrom": "paid",
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.4",
+            "quote": "An Award shall be closed by the Program Officer once payment has been issued and the recipient has confirmed receipt."
+          }
+        }
+      },
+      {
+        "op": "add_field",
+        "summary": "Records the recipient's short post-award report on the use of funds, which is optional and never blocks closure.",
+        "field": {
+          "key": "use_of_funds_report",
+          "label": "Use-of-funds report",
+          "type": "textarea",
+          "required": false,
+          "requiredFrom": null,
+          "options": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "6.1",
+            "quote": "Recipients shall submit a short report on the use of funds within twelve months of payment."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "A Program Officer queues an approved Award for payment, moving it from approved to payment pending.",
+        "transition": {
+          "id": "queue_for_payment",
+          "from": "approved",
+          "to": "payment_pending",
+          "label": "Queue for payment",
+          "role": "program_officer",
+          "guard": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.1",
+            "quote": "Upon approval of an Award, the Program Officer shall queue it for payment. An Award moves from *approved* to *payment pending*."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "Finance issues the payment in full, moving the Award from payment pending to paid.",
+        "transition": {
+          "id": "issue_payment",
+          "from": "payment_pending",
+          "to": "paid",
+          "label": "Issue payment",
+          "role": "finance",
+          "guard": null,
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.2",
+            "quote": "Finance shall issue the payment in full. Upon issue, the Award moves from *payment pending* to *paid*."
+          }
+        }
+      },
+      {
+        "op": "add_transition",
+        "summary": "A Program Officer closes a paid Award once the recipient has confirmed receipt.",
+        "transition": {
+          "id": "close_award",
+          "from": "paid",
+          "to": "closed",
+          "label": "Close award",
+          "role": "program_officer",
+          "guard": {
+            "eq": [
+              "receipt_confirmed",
+              {
+                "value": true
+              }
+            ]
+          },
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.4",
+            "quote": "An Award shall be closed by the Program Officer once payment has been issued and the recipient has confirmed receipt."
+          }
+        }
+      },
+      {
+        "op": "add_rule",
+        "summary": "Every award must record a Program Officer approval before any payment is made.",
+        "rule": {
+          "id": "program_officer_approval",
+          "label": "Program Officer approval required before payment",
+          "when": {
+            "isSet": "approved_by"
+          },
+          "require": [
+            "approved_by"
+          ],
+          "role": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.1",
+            "quote": "Every Award shall be approved by a Program Officer prior to payment."
+          }
+        }
+      },
+      {
+        "op": "add_rule",
+        "summary": "No award under this program may be for more than 25,000 dollars.",
+        "rule": {
+          "id": "award_cap_25000",
+          "label": "Award may not exceed 25000",
+          "when": {
+            "gt": [
+              "amount",
+              {
+                "value": 25000
+              }
+            ]
+          },
+          "require": [],
+          "role": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "4.2",
+            "quote": "No Award under this program shall exceed twenty-five thousand dollars ($25,000)."
+          }
+        }
+      },
+      {
+        "op": "add_rule",
+        "summary": "An award can only be closed once the payment has been issued and the recipient has confirmed receiving it.",
+        "rule": {
+          "id": "closure_requires_payment_and_receipt",
+          "label": "Closure requires issued payment and confirmed receipt",
+          "when": {
+            "isSet": "payment_issued_at"
+          },
+          "require": [
+            "payment_issued_at",
+            "receipt_confirmed"
+          ],
+          "role": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "3.4",
+            "quote": "An Award shall be closed by the Program Officer once payment has been issued and the recipient has confirmed receipt."
+          }
+        }
+      },
+      {
+        "op": "add_clock",
+        "summary": "Finance has five days from an award being queued for payment to issue it, with escalation to the Finance lead after three days.",
+        "clock": {
+          "id": "payment_issue_slo",
+          "label": "Payment issued within 5 days of queuing",
+          "fromState": "payment_pending",
+          "days": 5,
+          "warnAt": 3,
+          "ownerRole": "finance",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "5.1",
+            "quote": "Payment shall be issued to the recipient within five (5) days of the Award being queued for payment. Where three days have elapsed without payment, the matter shall be escalated to the Finance lead."
+          }
+        }
+      },
+      {
+        "op": "add_clock",
+        "summary": "The Program Officer must notify the recipient of approval within five days of the decision (no warning point is stated in the document, so day 4 is used).",
+        "clock": {
+          "id": "approval_notification_slo",
+          "label": "Recipient notified of approval within 5 days",
+          "fromState": "approved",
+          "days": 5,
+          "warnAt": 4,
+          "ownerRole": "program_officer",
+          "source": {
+            "document": "program-contract.md",
+            "clause": "5.2",
+            "quote": "Recipients shall be notified of approval within five days of the decision."
+          }
+        }
+      }
+    ]
+  }
+}

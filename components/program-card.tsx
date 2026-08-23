@@ -1,20 +1,14 @@
 import Link from 'next/link'
 import {
-  ChatTeardropTextIcon,
   CircleNotchIcon,
   PresentationChartIcon,
   ShieldCheckIcon,
   TreeStructureIcon,
-  WarningCircleIcon,
 } from '@phosphor-icons/react/dist/ssr'
 import { ExplainSheet } from '@/components/explain-sheet'
+import { Funnel, type FunnelStage } from '@/components/funnel'
 
-export type FunnelStage = {
-  label: string
-  count: number
-  /** Something in the queue is sitting at this stage. */
-  flagged: boolean
-}
+export type { FunnelStage }
 
 export type ProgramCardData = {
   id: string
@@ -89,63 +83,3 @@ export function ProgramCard({ program }: { program: ProgramCardData }) {
     </article>
   )
 }
-
-/**
- * A stepped area, one step per lifecycle stage, each step's height proportional
- * to how much work has reached it. Deliberately unlabelled on the y axis: the
- * numbers above it are the data, and the shape is only there to make the drop
- * between stages legible at a glance.
- */
-function Funnel({ stages }: { stages: FunnelStage[] }) {
-  if (stages.length === 0) return null
-  const width = 360
-  const height = 62
-  const max = Math.max(...stages.map((s) => s.count), 1)
-  const step = width / stages.length
-
-  const points: string[] = []
-  stages.forEach((stage, i) => {
-    const y = height - Math.max((stage.count / max) * height, 2)
-    points.push(`${i * step},${y}`, `${(i + 1) * step},${y}`)
-  })
-  const area = `0,${height} ${points.join(' ')} ${width},${height}`
-  const line = points.join(' ')
-
-  return (
-    <div className="min-w-0 flex-1">
-      <div className="flex" style={{ maxWidth: width }}>
-        {stages.map((stage) => (
-          <div key={stage.label} className="flex-1">
-            <span className="flex items-center gap-1.5 text-[15px] font-medium tabular-nums">
-              {stage.count.toLocaleString('en-US')}
-              {stage.flagged ? (
-                <WarningCircleIcon size={16} weight="bold" className="text-overdue" />
-              ) : null}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="mt-1 h-[62px] w-full"
-        style={{ maxWidth: width }}
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        <polygon points={area} className="fill-brand-line/45" />
-        <polyline points={line} className="stroke-brand" strokeWidth={2.5} fill="none" vectorEffect="non-scaling-stroke" />
-      </svg>
-
-      <div className="flex" style={{ maxWidth: width }}>
-        {stages.map((stage) => (
-          <span key={stage.label} className="flex-1 text-[13px] text-muted-foreground">
-            {stage.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-export { ChatTeardropTextIcon }
