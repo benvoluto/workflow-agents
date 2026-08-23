@@ -26,7 +26,7 @@ export function ItemMenu({
           <button
             type="button"
             aria-label="More actions"
-            className="grid size-7 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="grid size-7 cursor-pointer place-items-center rounded-md text-action transition-opacity hover:opacity-75"
           />
         }
       >

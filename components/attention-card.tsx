@@ -1,10 +1,7 @@
 import Link from 'next/link'
 import {
   ArrowsClockwiseIcon,
-  BellSimpleZIcon,
-  ChatTeardropTextIcon,
   ClockCountdownIcon,
-  DotsThreeVerticalIcon,
   LockKeyIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react/dist/ssr'
@@ -13,14 +10,34 @@ import { ItemMenu } from '@/components/item-menu'
 import { SnoozeButton } from '@/components/snooze-button'
 import type { AttentionItem, Urgency } from '@/lib/engine/attention'
 import { money } from '@/lib/format'
-import { ROLE_PEOPLE } from '@/lib/spec/types'
+import { ROLE_LABELS, ROLE_PEOPLE, type Role } from '@/lib/spec/types'
 import { cn } from '@/lib/utils'
 
-const TONE: Record<Urgency, { panel: string; text: string; label: string }> = {
-  overdue: { panel: 'bg-overdue-soft', text: 'text-overdue', label: 'Overdue' },
-  due_soon: { panel: 'bg-due-soon-soft', text: 'text-due-soon', label: 'Due soon' },
-  blocked: { panel: 'bg-blocked-soft', text: 'text-blocked', label: 'Blocked' },
-  change: { panel: 'bg-change-soft', text: 'text-change', label: 'Pending change' },
+const TONE: Record<Urgency, { panel: string; accent: string; ink: string; label: string }> = {
+  overdue: {
+    panel: 'bg-overdue-soft',
+    accent: 'text-overdue',
+    ink: 'text-overdue-ink',
+    label: 'Overdue',
+  },
+  due_soon: {
+    panel: 'bg-due-soon-soft',
+    accent: 'text-due-soon',
+    ink: 'text-due-soon-ink',
+    label: 'Due soon',
+  },
+  blocked: {
+    panel: 'bg-blocked-soft',
+    accent: 'text-blocked',
+    ink: 'text-blocked-ink',
+    label: 'Blocked',
+  },
+  change: {
+    panel: 'bg-change-soft',
+    accent: 'text-change',
+    ink: 'text-change-ink',
+    label: 'Pending change',
+  },
 }
 
 const REASON_ICON = {
@@ -32,11 +49,12 @@ const REASON_ICON = {
 } as const
 
 /**
- * One thing that needs a person, as a split card: what it is on the tinted
- * left, what to do about it on the white right.
+ * One thing that needs a person, as a single rounded card split down the middle:
+ * what it is on the tinted left, what to do about it on the white right.
  *
- * The tint carries the urgency, so a queue can be read at a glance without
- * anybody parsing the sentences.
+ * The tint carries the urgency and the title is darkened from the same hue, so
+ * a queue can be sorted by eye from across a room before anybody reads a word
+ * of it.
  */
 export function AttentionCard({
   item,
@@ -52,42 +70,41 @@ export function AttentionCard({
   return (
     <article
       className={cn(
-        'flex flex-col overflow-hidden rounded-2xl sm:flex-row',
+        'flex flex-col overflow-hidden rounded-3xl sm:flex-row',
         tone.panel,
         snoozedUntil && 'opacity-60',
       )}
     >
-      <div className="flex w-full shrink-0 flex-col gap-2 p-5 sm:w-[34%]">
-        <span className={cn('flex items-center gap-1.5 font-semibold', tone.text)}>
-          <Icon size={19} weight="bold" />
+      <div className="flex w-full shrink-0 flex-col gap-2.5 p-6 sm:w-[31%]">
+        <span className={cn('flex items-center gap-1.5 font-semibold', tone.accent)}>
+          <Icon size={19} weight="bold" className="shrink-0" />
           {snoozedUntil ? 'Snoozed' : tone.label}
         </span>
-        <Link href={href} className="text-[17px] leading-snug font-semibold text-foreground hover:underline">
+        <Link
+          href={href}
+          className={cn(
+            'text-[17px] leading-[1.35] font-bold hover:underline',
+            tone.ink,
+          )}
+        >
           {item.headline}
         </Link>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 rounded-2xl border bg-card p-5">
-        <p className="text-[15px] leading-relaxed text-foreground/80">
-          {item.amount !== null ? (
-            <span className="font-medium text-foreground">{money(item.amount)} </span>
-          ) : null}
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-5 bg-card p-6">
+        <p className="text-[15px] leading-relaxed text-muted-foreground">
+          {item.amount !== null ? `${money(item.amount)} ` : ''}
           {item.subline}.{' '}
           {item.ownerRole ? (
             <>
-              Owned by {roleWord(item.ownerRole)} &middot; Contact{' '}
-              <span className="text-link">{ROLE_PEOPLE[item.ownerRole]}</span>.{' '}
+              Owned by {ROLE_LABELS[item.ownerRole]} &middot; Contact{' '}
+              <Contact role={item.ownerRole} />{' '}
             </>
           ) : null}
-          {item.evidence ? (
-            <ExplainSheet
-              item={serialise(item)}
-              trigger="source"
-            />
-          ) : null}
+          <ExplainSheet item={serialise(item)} trigger="source" />
         </p>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-8">
           <ExplainSheet item={serialise(item)} />
           <SnoozeButton itemId={item.id} snoozed={Boolean(snoozedUntil)} />
           <div className="ml-auto">
@@ -99,8 +116,8 @@ export function AttentionCard({
   )
 }
 
-function roleWord(role: keyof typeof ROLE_PEOPLE): string {
-  return role === 'cfo' ? 'the CFO' : role === 'finance' ? 'Finance' : 'the Program Officer'
+function Contact({ role }: { role: Role }) {
+  return <span className="text-link">{ROLE_PEOPLE[role]}.</span>
 }
 
 /** Only what the sheet renders — the rest of the item stays on the server. */
@@ -118,5 +135,3 @@ function serialise(item: AttentionItem) {
     ageLabel: item.ageLabel,
   }
 }
-
-export { ChatTeardropTextIcon, BellSimpleZIcon, DotsThreeVerticalIcon }

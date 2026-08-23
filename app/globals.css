@@ -50,6 +50,10 @@
   --color-due-soon-soft: var(--due-soon-soft);
   --color-change: var(--change);
   --color-change-soft: var(--change-soft);
+  --color-overdue-ink: var(--overdue-ink);
+  --color-blocked-ink: var(--blocked-ink);
+  --color-due-soon-ink: var(--due-soon-ink);
+  --color-change-ink: var(--change-ink);
   --color-link: var(--link);
   --color-action: var(--action);
   --color-heading: var(--heading);
@@ -98,9 +102,13 @@
   --due-soon-soft: oklch(0.966 0.021 258);
   --change: oklch(0.548 0.219 288);
   --change-soft: oklch(0.966 0.024 292);
+  --overdue-ink: oklch(0.42 0.035 55);
+  --blocked-ink: oklch(0.42 0.035 80);
+  --due-soon-ink: oklch(0.40 0.042 262);
+  --change-ink: oklch(0.40 0.042 292);
 
-  --link: oklch(0.552 0.204 259);
-  --action: oklch(0.528 0.229 285);
+  --link: oklch(0.598 0.186 255);
+  --action: oklch(0.495 0.263 270);
 
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.918 0.003 258);
@@ -137,6 +145,10 @@
   --due-soon-soft: oklch(0.26 0.06 262);
   --change: oklch(0.7 0.17 288);
   --change-soft: oklch(0.26 0.07 288);
+  --overdue-ink: oklch(0.92 0.02 55);
+  --blocked-ink: oklch(0.92 0.02 80);
+  --due-soon-ink: oklch(0.92 0.02 262);
+  --change-ink: oklch(0.92 0.02 292);
   --link: oklch(0.7 0.16 259);
   --action: oklch(0.7 0.18 285);
 
