@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowRightIcon, PaperPlaneRightIcon } from '@phosphor-icons/react'
 import { askQuestion, type AskResult } from '@/app/ask'
 import { UploadDialog, type SampleOption } from '@/components/upload-dialog'
+import { cn } from '@/lib/utils'
 
 type ProgramOption = { id: string; name: string; version: number }
 
@@ -107,25 +108,39 @@ export function AskBar({
   )
 }
 
-function QuickAction({ label, href }: { label: string; href?: string }) {
+const QUICK_ACTION_CLASS =
+  'flex w-fit cursor-pointer items-center gap-2.5 text-[15px] font-medium text-link transition-opacity hover:opacity-75'
+
+/**
+ * A quick action, which may be handed to a dialog trigger via its `render` prop.
+ *
+ * It has to forward every prop it is given onto the real button: the trigger
+ * clones this element to attach its own click handler, ref and ARIA state, and
+ * a component that renders a fresh <button> without spreading them looks
+ * perfectly fine and does nothing at all when clicked.
+ */
+function QuickAction({
+  label,
+  href,
+  className,
+  ...rest
+}: { label: string; href?: string } & React.ComponentProps<'button'>) {
   const inner = (
     <>
       <ArrowRightIcon size={19} />
       {label}
     </>
   )
-  const className =
-    'flex w-fit cursor-pointer items-center gap-2.5 text-[15px] font-medium text-link transition-opacity hover:opacity-75'
 
   if (href) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} className={cn(QUICK_ACTION_CLASS, className)}>
         {inner}
       </Link>
     )
   }
   return (
-    <button type="button" className={className}>
+    <button type="button" className={cn(QUICK_ACTION_CLASS, className)} {...rest}>
       {inner}
     </button>
   )

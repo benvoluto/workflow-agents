@@ -1,4 +1,5 @@
-import { BuildingsIcon, TrayIcon } from '@phosphor-icons/react/dist/ssr'
+import Link from 'next/link'
+import { ArrowRightIcon, BuildingsIcon, TrayIcon } from '@phosphor-icons/react/dist/ssr'
 import { AttentionCard } from '@/components/attention-card'
 import { FilterTabs, type Tab, type Tone } from '@/components/filter-tabs'
 import { ProgramCard, type FunnelStage, type ProgramCardData } from '@/components/program-card'
@@ -128,7 +129,19 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
       </section>
 
       <section>
-        <ColumnHeading icon={<BuildingsIcon size={30} />} title="Programs" />
+        <ColumnHeading
+          icon={<BuildingsIcon size={30} />}
+          title="Programs"
+          action={
+            <Link
+              href="/records"
+              className="flex items-center gap-1.5 text-[15px] font-medium text-link transition-opacity hover:opacity-75"
+            >
+              All records
+              <ArrowRightIcon size={17} />
+            </Link>
+          }
+        />
         <FilterTabs tabs={statusTabs} className="mt-4 mb-5" />
 
         {visiblePrograms.length === 0 ? (
@@ -156,12 +169,23 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
   )
 }
 
-function ColumnHeading({ icon, title }: { icon: React.ReactNode; title: string }) {
+function ColumnHeading({
+  icon,
+  title,
+  action,
+}: {
+  icon: React.ReactNode
+  title: string
+  action?: React.ReactNode
+}) {
   return (
-    <h1 className="flex items-center gap-3 text-[30px] font-normal text-heading">
-      {icon}
-      {title}
-    </h1>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h1 className="flex items-center gap-3 text-[30px] font-normal text-heading">
+        {icon}
+        {title}
+      </h1>
+      {action}
+    </div>
   )
 }
 
