@@ -23,7 +23,7 @@ export function AppHeader({ role }: { role: Role }) {
   return (
     <header className="mx-auto w-full max-w-[1600px] px-8 pt-8 pb-6">
       <div className="flex flex-wrap items-center gap-4">
-        <Link href="/" className="flex items-center gap-4">
+        <Link href="/" className="flex items-end justify-end gap-4">
           <Image
             src="/liif-logo.svg"
             alt="Grants•OS"
@@ -32,7 +32,7 @@ export function AppHeader({ role }: { role: Role }) {
             className="h-[58px] w-auto"
             priority
           />
-          <span className="rounded-full bg-secondary px-4 py-1.5 text-sm font-semibold tracking-[0.12em] text-muted-foreground">
+          <span className="rounded-full bg-[#E1E6F1] px-4 py-1.5 text-sm font-semibold text-muted-foreground">
             GRANTS•OS
           </span>
         </Link>

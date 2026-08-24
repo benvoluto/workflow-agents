@@ -17,7 +17,7 @@ function Send() {
       type="submit"
       disabled={pending}
       aria-label="Ask"
-      className="absolute right-3 bottom-3 grid size-9 cursor-pointer place-items-center rounded-lg bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="absolute right-3 bottom-3 grid size-9 cursor-pointer place-items-center rounded-lg text-muted-foreground hover:text-primary transition-opacity hover:opacity-90 disabled:opacity-50"
     >
       {pending ? (
         <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

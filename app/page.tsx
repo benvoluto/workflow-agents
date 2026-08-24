@@ -152,6 +152,7 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
                 <ProgramCard program={card} />
                 <GrantsPreview
                   programId={card.id}
+                  programName={card.name}
                   total={card.grantCount}
                   rows={card.recentGrants}
                 />

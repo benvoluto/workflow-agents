@@ -7,6 +7,7 @@ import {
 } from '@phosphor-icons/react/dist/ssr'
 import { ExplainSheet } from '@/components/explain-sheet'
 import { Funnel, type FunnelStage } from '@/components/funnel'
+import { cn, RAISED, STRETCHED } from '@/lib/utils'
 
 export type { FunnelStage }
 
@@ -36,7 +37,7 @@ export type ProgramCardData = {
  */
 export function ProgramCard({ program }: { program: ProgramCardData }) {
   return (
-    <article className="@container rounded-2xl border border-brand-line bg-brand-soft p-6">
+    <article className="@container relative rounded-2xl border border-brand-line bg-brand-soft p-6">
       <div className="flex flex-wrap items-center gap-4">
         <span className="flex items-center gap-1.5 text-[15px] font-semibold text-brand">
           <ShieldCheckIcon size={19} weight="fill" />v{program.version}
@@ -44,7 +45,10 @@ export function ProgramCard({ program }: { program: ProgramCardData }) {
         {program.pendingVersion ? (
           <Link
             href={`/programs/${program.id}`}
-            className="flex items-center gap-1.5 text-[15px] font-semibold text-change hover:underline"
+            className={cn(
+              RAISED,
+              'flex items-center gap-1.5 text-[15px] font-semibold text-change hover:underline',
+            )}
           >
             <CircleNotchIcon size={18} weight="bold" className="animate-spin [animation-duration:3s]" />
             v{program.pendingVersion} pending
@@ -61,7 +65,11 @@ export function ProgramCard({ program }: { program: ProgramCardData }) {
       <div className="mt-5 grid items-start gap-x-8 gap-y-6 @[40rem]:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto]">
         <Link
           href={`/programs/${program.id}`}
-          className="text-[26px] leading-[1.15] font-bold text-brand hover:underline"
+          className={cn(
+            'text-[26px] leading-[1.15] font-bold text-brand hover:underline',
+            STRETCHED,
+            'after:rounded-2xl',
+          )}
         >
           {program.name}
         </Link>
@@ -69,17 +77,25 @@ export function ProgramCard({ program }: { program: ProgramCardData }) {
         <Funnel stages={program.stages} />
 
         <div className="flex flex-wrap gap-x-6 gap-y-2.5 @[40rem]:flex-col @[40rem]:gap-2.5">
-          <ExplainSheet item={program.explain} />
+          <div className={RAISED}>
+            <ExplainSheet item={program.explain} />
+          </div>
           <Link
             href={`/grants?program=${program.id}`}
-            className="flex items-center gap-2 text-[15px] font-medium text-brand transition-opacity hover:opacity-75"
+            className={cn(
+              RAISED,
+              'flex w-fit items-center gap-2 text-[15px] font-medium text-brand transition-opacity hover:opacity-75',
+            )}
           >
             <TreeStructureIcon size={19} />
             Review Pipeline
           </Link>
           <Link
             href={`/programs/${program.id}`}
-            className="flex items-center gap-2 text-[15px] font-medium text-brand transition-opacity hover:opacity-75"
+            className={cn(
+              RAISED,
+              'flex w-fit items-center gap-2 text-[15px] font-medium text-brand transition-opacity hover:opacity-75',
+            )}
           >
             <PresentationChartIcon size={19} />
             Review Performance

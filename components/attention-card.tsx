@@ -11,7 +11,7 @@ import { SnoozeButton } from '@/components/snooze-button'
 import type { AttentionItem, Urgency } from '@/lib/engine/attention'
 import { money } from '@/lib/format'
 import { ROLE_LABELS, ROLE_PEOPLE, type Role } from '@/lib/spec/types'
-import { cn } from '@/lib/utils'
+import { cn, RAISED, STRETCHED } from '@/lib/utils'
 
 const TONE: Record<Urgency, { panel: string; accent: string; ink: string; label: string }> = {
   overdue: {
@@ -70,7 +70,7 @@ export function AttentionCard({
   return (
     <article
       className={cn(
-        'flex flex-col overflow-hidden rounded-3xl border-2 border-[#EEEEED] sm:flex-row',
+        'relative flex flex-col overflow-hidden rounded-3xl border-2 border-[#EEEEED] sm:flex-row',
         tone.panel,
         snoozedUntil && 'opacity-60',
       )}
@@ -84,6 +84,8 @@ export function AttentionCard({
           href={href}
           className={cn(
             'text-[17px] leading-[1.35] font-bold hover:underline',
+            STRETCHED,
+            'after:rounded-3xl',
             tone.ink,
           )}
         >
@@ -101,13 +103,19 @@ export function AttentionCard({
               <Contact role={item.ownerRole} />{' '}
             </>
           ) : null}
-          <ExplainSheet item={serialise(item)} trigger="source" />
+          <span className={RAISED}>
+            <ExplainSheet item={serialise(item)} trigger="source" />
+          </span>
         </p>
 
         <div className="flex items-center gap-8">
-          <ExplainSheet item={serialise(item)} />
-          <SnoozeButton itemId={item.id} snoozed={Boolean(snoozedUntil)} />
-          <div className="ml-auto">
+          <div className={RAISED}>
+            <ExplainSheet item={serialise(item)} />
+          </div>
+          <div className={RAISED}>
+            <SnoozeButton itemId={item.id} snoozed={Boolean(snoozedUntil)} />
+          </div>
+          <div className={cn(RAISED, 'ml-auto')}>
             <ItemMenu href={href} itemId={item.id} documentHref={null} />
           </div>
         </div>

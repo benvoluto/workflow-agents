@@ -22,10 +22,12 @@ export type GrantPreviewRow = {
  */
 export function GrantsPreview({
   programId,
+  programName,
   total,
   rows,
 }: {
   programId: string
+  programName: string
   total: number
   rows: GrantPreviewRow[]
 }) {
@@ -33,8 +35,8 @@ export function GrantsPreview({
 
   return (
     <section className="rounded-2xl border-2 border-[#EEEEED] bg-card">
-      <header className="flex items-center justify-between gap-3 px-5 pt-4 pb-2">
-        <h3 className="text-[15px] font-semibold">Recent grants</h3>
+      <header className="flex items-center justify-between gap-3 px-5 pt-4.5 pb-2">
+        <h3 className="text-[15px] font-light">Recent grants for {programName}</h3>
         <Link
           href={`/grants?program=${programId}`}
           className="flex items-center gap-1.5 text-[15px] font-medium text-link transition-opacity hover:opacity-75"

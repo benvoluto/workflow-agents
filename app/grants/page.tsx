@@ -17,7 +17,7 @@ import { ageLabel, money } from '@/lib/format'
 import { getPrograms, getRecords, sharedParties, toContexts } from '@/lib/queries'
 import { owningRole } from '@/lib/engine/runtime'
 import { ROLE_LABELS, stateLabel } from '@/lib/spec/types'
-import { cn } from '@/lib/utils'
+import { cn, STRETCHED } from '@/lib/utils'
 
 export default async function RecordsPage({ searchParams }: PageProps<'/grants'>) {
   const params = await searchParams
@@ -116,14 +116,16 @@ export default async function RecordsPage({ searchParams }: PageProps<'/grants'>
                 const isShared = shared.has(title)
 
                 return (
-                  <TableRow key={record.id} className="group">
+                  <TableRow key={record.id} className="group relative cursor-pointer">
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      <Link href={`/grants/${record.id}`} className="hover:underline">
-                        {record.ref}
-                      </Link>
+                      {record.ref}
                     </TableCell>
                     <TableCell className="font-medium">
-                      <Link href={`/grants/${record.id}`} className="hover:underline">
+                      {/* One link, stretched across the row. */}
+                      <Link
+                        href={`/grants/${record.id}`}
+                        className={cn('group-hover:underline', STRETCHED)}
+                      >
                         {title}
                       </Link>
                     </TableCell>
