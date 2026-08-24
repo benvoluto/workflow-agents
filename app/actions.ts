@@ -261,10 +261,10 @@ export async function performTransition(formData: FormData) {
   const role = await currentRole()
 
   const [row] = await db.select().from(schema.records).where(eq(schema.records.id, recordId))
-  if (!row) redirect('/records')
+  if (!row) redirect('/grants')
 
   const spec = await specForRecord(row.programId, row.specVersion)
-  if (!spec) redirect(`/records/${recordId}`)
+  if (!spec) redirect(`/grants/${recordId}`)
 
   const record: RecordLike = {
     id: row.id,
@@ -278,7 +278,7 @@ export async function performTransition(formData: FormData) {
 
   const error = validateTransition(spec, record, transitionId, role)
   if (error) {
-    redirect(`/records/${recordId}?error=${encodeURIComponent(error)}`)
+    redirect(`/grants/${recordId}?error=${encodeURIComponent(error)}`)
   }
 
   const transition = spec.transitions.find((t) => t.id === transitionId)!
@@ -314,7 +314,7 @@ export async function performTransition(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect(`/records/${recordId}`)
+  redirect(`/grants/${recordId}`)
 }
 
 /** Fill in a field: an evidence link, a signature, a note. */
@@ -326,7 +326,7 @@ export async function updateField(formData: FormData) {
   const role = await currentRole()
 
   const [row] = await db.select().from(schema.records).where(eq(schema.records.id, recordId))
-  if (!row || !key) redirect(`/records/${recordId}`)
+  if (!row || !key) redirect(`/grants/${recordId}`)
 
   const value = type === 'signature' ? `${actorFor(role)}, ${new Date().toISOString()}` : coerceValue(raw, type)
   const now = new Date()
@@ -345,7 +345,7 @@ export async function updateField(formData: FormData) {
   })
 
   revalidatePath('/', 'layout')
-  redirect(`/records/${recordId}`)
+  redirect(`/grants/${recordId}`)
 }
 
 /**
@@ -358,10 +358,10 @@ export async function migrateRecord(formData: FormData) {
   const recordId = String(formData.get('recordId') ?? '')
   const role = await currentRole()
   const [row] = await db.select().from(schema.records).where(eq(schema.records.id, recordId))
-  if (!row) redirect('/records')
+  if (!row) redirect('/grants')
   await migrateOne(row, actorFor(role))
   revalidatePath('/', 'layout')
-  redirect(`/records/${recordId}`)
+  redirect(`/grants/${recordId}`)
 }
 
 export async function migrateProgram(formData: FormData) {

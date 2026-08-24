@@ -242,7 +242,7 @@ function changeImpact(
       id: `${ctx.programId}:impact:rule:${rule.id}`,
       urgency: 'change',
       reason: 'Change impact',
-      headline: `${affected.length} in-flight ${affected.length === 1 ? 'record' : 'records'} would newly require ${rule.label.toLowerCase()}`,
+      headline: `${affected.length} in-flight ${affected.length === 1 ? 'grant' : 'grants'} would newly require ${rule.label.toLowerCase()}`,
       subline: `${ctx.programName} v${ctx.currentVersion}${rule.source ? ` · ${rule.source.clause}` : ''} — ${affected
         .map((r) => r.ref)
         .join(', ')}`,
@@ -255,7 +255,7 @@ function changeImpact(
       dueAt: null,
       ageLabel: `${affected.length} affected`,
       evidence: rule.source,
-      resolution: `Moving these records to v${ctx.currentVersion} applies the new rule to them.`,
+      resolution: `Moving these grants to v${ctx.currentVersion} applies the new rule to them.`,
       sortKey: -affected.length,
     })
   }
@@ -275,7 +275,7 @@ function changeImpact(
       id: `${ctx.programId}:impact:clock:${clock.id}`,
       urgency: 'change',
       reason: 'Change impact',
-      headline: `${affected.length} in-flight ${affected.length === 1 ? 'record is' : 'records are'} immediately overdue`,
+      headline: `${affected.length} in-flight ${affected.length === 1 ? 'grant is' : 'grants are'} immediately overdue`,
       subline: `${clock.label} tightened to ${clock.days} days${clock.source ? ` · ${clock.source.clause}` : ''} — ${affected
         .map((r) => r.ref)
         .join(', ')}`,
@@ -288,7 +288,7 @@ function changeImpact(
       dueAt: null,
       ageLabel: `${affected.length} affected`,
       evidence: clock.source,
-      resolution: `Moving these records to v${ctx.currentVersion} applies the tighter window to them.`,
+      resolution: `Moving these grants to v${ctx.currentVersion} applies the tighter window to them.`,
       sortKey: -affected.length,
     })
   }

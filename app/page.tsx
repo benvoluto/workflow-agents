@@ -1,8 +1,8 @@
-import Link from 'next/link'
-import { ArrowRightIcon, BuildingsIcon, TrayIcon } from '@phosphor-icons/react/dist/ssr'
+import { BuildingsIcon, TrayIcon } from '@phosphor-icons/react/dist/ssr'
 import { AttentionCard } from '@/components/attention-card'
 import { FilterTabs, type Tab, type Tone } from '@/components/filter-tabs'
 import { ProgramCard, type FunnelStage, type ProgramCardData } from '@/components/program-card'
+import { GrantsPreview, type GrantPreviewRow } from '@/components/grants-preview'
 import { UploadDialog } from '@/components/upload-dialog'
 import {
   attention,
@@ -129,19 +129,7 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
       </section>
 
       <section>
-        <ColumnHeading
-          icon={<BuildingsIcon size={30} />}
-          title="Programs"
-          action={
-            <Link
-              href="/records"
-              className="flex items-center gap-1.5 text-[15px] font-medium text-link transition-opacity hover:opacity-75"
-            >
-              All records
-              <ArrowRightIcon size={17} />
-            </Link>
-          }
-        />
+        <ColumnHeading icon={<BuildingsIcon size={30} />} title="Programs" />
         <FilterTabs tabs={statusTabs} className="mt-4 mb-5" />
 
         {visiblePrograms.length === 0 ? (
@@ -158,9 +146,16 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
             ) : null}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {visiblePrograms.map((card) => (
-              <ProgramCard key={card.id} program={card} />
+              <div key={card.id} className="space-y-2">
+                <ProgramCard program={card} />
+                <GrantsPreview
+                  programId={card.id}
+                  total={card.grantCount}
+                  rows={card.recentGrants}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -249,7 +244,11 @@ function buildProgramCard(
   records: RecordRow[],
   items: AttentionItem[],
   pending: { programId: string | null; id: string }[],
-): ProgramCardData & { status: ProgramStatus } {
+): ProgramCardData & {
+  status: ProgramStatus
+  grantCount: number
+  recentGrants: GrantPreviewRow[]
+} {
   const spec = program.currentSpec
   const mine = records.filter((r) => r.programId === program.id)
   const flagged = new Set(items.map((i) => i.recordId).filter(Boolean) as string[])
@@ -269,6 +268,22 @@ function buildProgramCard(
   const clocks = spec.clocks.length
   const entity = program.entity.toLowerCase()
 
+  // Most recently moved first: what changed lately is what somebody is most
+  // likely to be looking for.
+  const titleKey = spec.fields.find((f) => f.type === 'text')?.key
+  const amountKey = spec.fields.find((f) => f.type === 'money')?.key
+  const recentGrants: GrantPreviewRow[] = [...mine]
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    .slice(0, 5)
+    .map((r) => ({
+      id: r.id,
+      ref: r.ref,
+      title: titleKey ? String(r.data[titleKey] ?? r.ref) : r.ref,
+      amount: amountKey && typeof r.data[amountKey] === 'number' ? (r.data[amountKey] as number) : null,
+      state: r.state,
+      flagged: flagged.has(r.id),
+    }))
+
   return {
     id: program.id,
     name: program.name,
@@ -276,6 +291,8 @@ function buildProgramCard(
     pendingVersion: hasPending ? program.currentVersion + 1 : null,
     stages: funnelFor(spec, mine, flagged),
     status,
+    grantCount: mine.length,
+    recentGrants,
     explain: {
       id: `program:${program.id}`,
       reason: 'Program',

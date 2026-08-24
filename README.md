@@ -1,6 +1,6 @@
 # Grants•OS
 
-Upload the documents that govern a process, and get a running app: real records,
+Upload the documents that govern a process, and get a running app: real grants,
 a real lifecycle, and a queue that tells people what needs them. Change the
 documents and the app changes with them — with every rule tracing back to the
 clause it came from.
@@ -64,8 +64,8 @@ extractor.
 
 1. **To Review.** Three payments past their SLO, two approaching, two awaiting a
    CFO signature, one missing its evidence link. Switch role in the header — the
-   same records, three different queues.
-2. **Any record.** Fields, available actions with the reasons they are blocked,
+   same grants, three different queues.
+2. **Any grant.** Fields, available actions with the reasons they are blocked,
    and full history.
 3. **Program.** The spec rendered readably. Click any clause chip for the
    provenance panel: the sentence, the document, the version, the approver.
@@ -95,7 +95,7 @@ dialog.
 | `design/programofficerview.png` | The design this interface follows |
 | `DEMO.md` | The demo script |
 
-Versions are rows, never updates. Records pin to the version they are being run
+Versions are rows, never updates. Grants pin to the version they are being run
 under, and moving one forward is an explicit decision with an event to show for
 it.
 
@@ -113,6 +113,11 @@ clock behind it, so it returns on its own.
 
 The Program Officer sees the whole queue with each item naming its owner;
 Finance and the CFO see only what is theirs. Switch in the header.
+
+The interface calls them **grants** and lists them at `/grants`. Internally they
+are `records` — the engine is generic and knows nothing about grant-making, and
+keeping the domain word out of it is what lets one spec interpreter run programs
+of any shape.
 
 ## Scripts
 
@@ -137,6 +142,6 @@ Finance and the CFO see only what is theirs. Switch in the header.
 - Clocks count calendar days, not business days, even where a contract says
   otherwise.
 - No auth. The role switcher is a cookie, which is the right trade for a demo
-  whose point is that one set of records produces three different queues.
+  whose point is that one set of grants produces three different queues.
 - No PDF parsing, no cross-program conflict detection beyond a shared-party flag,
   and no code generation.

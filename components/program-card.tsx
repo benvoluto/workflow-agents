@@ -71,7 +71,7 @@ export function ProgramCard({ program }: { program: ProgramCardData }) {
         <div className="flex flex-wrap gap-x-6 gap-y-2.5 @[40rem]:flex-col @[40rem]:gap-2.5">
           <ExplainSheet item={program.explain} />
           <Link
-            href={`/records?program=${program.id}`}
+            href={`/grants?program=${program.id}`}
             className="flex items-center gap-2 text-[15px] font-medium text-brand transition-opacity hover:opacity-75"
           >
             <TreeStructureIcon size={19} />

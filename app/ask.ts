@@ -52,7 +52,7 @@ export async function askQuestion(
         ].join('\n'),
       ),
       '',
-      '# Records',
+      '# Grants',
       ...records.map((r) => {
         const p = programs.find((x) => x.id === r.programId)
         const spec = p?.versions.find((v) => v.version === r.specVersion)?.spec

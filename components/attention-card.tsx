@@ -65,7 +65,7 @@ export function AttentionCard({
 }) {
   const tone = TONE[item.urgency]
   const Icon = REASON_ICON[item.reason as keyof typeof REASON_ICON] ?? WarningCircleIcon
-  const href = item.recordId ? `/records/${item.recordId}` : `/programs/${item.programId}`
+  const href = item.recordId ? `/grants/${item.recordId}` : `/programs/${item.programId}`
 
   return (
     <article

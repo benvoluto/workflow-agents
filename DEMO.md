@@ -13,7 +13,7 @@ sentence that created it.
 
 ## Before you start
 
-**Re-seed on the morning of the demo.** Record dates are stored relative to when
+**Re-seed on the morning of the demo.** Grant dates are stored relative to when
 the seed ran, so a seed from three days ago makes every item three days more
 overdue than this script says.
 
@@ -44,8 +44,9 @@ Open the app.
 > $148,000 · 10-day SLO breached, 9 days over. Due 14 Aug. Owned by Finance ·
 > Contact Marcus Oyelaran.
 
-**Right — Programs:** Milestone Facilities Grant at v2, with the pipeline funnel:
-12 approved → 5 in evidence review → 2 paid.
+**Right — Programs:** Milestone Facilities Grant at v2, with the pipeline funnel —
+12 approved → 5 in evidence review → 2 paid — and the five most recently moved
+grants listed underneath, with **See all 12**.
 
 > Nobody typed any of this. It is computed from the contract's ten-day clause and
 > the date the tranche was released. This is not a dashboard — it is a list of
@@ -66,7 +67,7 @@ pausing the clock behind it, so it returns on its own rather than being forgotte
 
 ---
 
-## 3. Same records, three queues · ~30s
+## 3. Same grants, three queues · ~30s
 
 Header person chip → dropdown.
 
@@ -76,13 +77,13 @@ Header person chip → dropdown.
 - Back to **Dana Whitfield, Program Officer** — 8. The coordinator sees all of it,
   with each item naming its owner.
 
-> Same records, same engine. Three different jobs.
+> Same grants, same engine. Three different jobs.
 
 ---
 
-## 4. A record, and provenance · ~60s
+## 4. A grant, and provenance · ~60s
 
-Click into **Northgate Community Trust** ($61,400) — the richest record in the
+Click into **Northgate Community Trust** ($61,400) — the richest grant in the
 set. It is blocked awaiting a CFO signature *and* on day 8 of a 10-day clock.
 
 Show the disabled action and the reason underneath it, then click the **§4.2**
@@ -106,10 +107,10 @@ The review screen shows:
 
 - **Modified · Dual signature** — old and new side by side, **$50,000 → $25,000**,
   with both clauses quoted.
-  *Impact: 2 in-flight records would newly require CFO signature — Kestrel
+  *Impact: 2 in-flight grants would newly require CFO signature — Kestrel
   Vocational Institute ($47,500), Brightwater Arts Foundation ($33,000).*
 - **Modified · Disbursement SLO** — **10 days → 7**, escalation 7 → 5.
-  *Impact: 1 in-flight record would become overdue immediately — Northgate
+  *Impact: 1 in-flight grant would become overdue immediately — Northgate
   Community Trust ($61,400).*
 - **Unresolved** — clauses that carry an obligation but no number, recorded rather
   than guessed at.
@@ -130,10 +131,10 @@ Click **Approve and create v3**.
 
 ## 6. What that did · ~45s
 
-You land on the program page: **now v3**, with *12 records are still on an older
+You land on the program page: **now v3**, with *12 grants are still on an older
 version* and a **Move all 12 to v3** button.
 
-> Records stay pinned to the rules that were in force when their work started.
+> Grants stay pinned to the rules that were in force when their work started.
 > Moving them is a decision somebody makes, not a side effect of approving a
 > document.
 
@@ -150,13 +151,13 @@ Header → **Upload a document** → **Samples**.
 
 1. **Apply to** = *— Start a new program —*, click
    `startup-lump-sum-grant/awards.csv`.
-   A program appears with 8 records and a placeholder lifecycle.
+   A program appears with 8 grants and a placeholder lifecycle.
 2. **Samples** again. **Apply to** = the new program, click its
    `program-contract.md`. Approve.
    It renames itself to **Startup Lump Sum Grant**, and gets a five-day payment
    clock and a completely different lifecycle — single payment, no milestones.
 
-**Tanner Ridge Cooperative** now appears in both programs. Open either record for
+**Tanner Ridge Cooperative** now appears in both programs. Open either grant for
 the cross-program callout.
 
 > One queue, two programs with nothing in common structurally, one provider
@@ -193,7 +194,7 @@ Programs → Milestone Facilities Grant → click any rule's clause chip.
 - **Clocks count calendar days, not business days**, even where the contract says
   business days.
 - **No auth.** The role switcher is a cookie. For this demo that is the right
-  trade: the point is that one set of records produces three different queues, and
+  trade: the point is that one set of grants produces three different queues, and
   real auth would only make that harder to show.
 
 ## Questions you will get

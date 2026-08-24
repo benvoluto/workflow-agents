@@ -19,7 +19,7 @@ import { owningRole } from '@/lib/engine/runtime'
 import { ROLE_LABELS, stateLabel } from '@/lib/spec/types'
 import { cn } from '@/lib/utils'
 
-export default async function RecordsPage({ searchParams }: PageProps<'/records'>) {
+export default async function RecordsPage({ searchParams }: PageProps<'/grants'>) {
   const params = await searchParams
   const programFilter = typeof params.program === 'string' ? params.program : null
   const stateFilter = typeof params.state === 'string' ? params.state : null
@@ -43,27 +43,27 @@ export default async function RecordsPage({ searchParams }: PageProps<'/records'
     {
       key: 'all',
       label: 'All',
-      href: '/records',
+      href: '/grants',
       active: !programFilter && !stateFilter && !onlyFlagged,
     },
     ...programs.map((p) => ({
       key: p.id,
       label: p.name,
-      href: `/records?program=${p.id}`,
+      href: `/grants?program=${p.id}`,
       active: programFilter === p.id,
       tone: 'brand' as const,
     })),
     ...states.map((s) => ({
       key: s,
       label: stateLabel(s),
-      href: `/records?state=${s}`,
+      href: `/grants?state=${s}`,
       active: stateFilter === s,
     })),
     {
       key: 'flagged',
       label: 'Needs attention',
       count: flaggedIds.size,
-      href: '/records?flagged=1',
+      href: '/grants?flagged=1',
       active: onlyFlagged,
       tone: 'overdue' as const,
     },
@@ -73,7 +73,7 @@ export default async function RecordsPage({ searchParams }: PageProps<'/records'
     <div className="space-y-6">
       <PageHeading
         icon={<ListChecksIcon size={30} />}
-        title="Records"
+        title="Grants"
         back={{ href: '/', label: 'To Review' }}
         meta={`${visible.length} of ${records.length} across ${
           programs.length === 1 ? '1 program' : `${programs.length} programs`
@@ -118,12 +118,12 @@ export default async function RecordsPage({ searchParams }: PageProps<'/records'
                 return (
                   <TableRow key={record.id} className="group">
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      <Link href={`/records/${record.id}`} className="hover:underline">
+                      <Link href={`/grants/${record.id}`} className="hover:underline">
                         {record.ref}
                       </Link>
                     </TableCell>
                     <TableCell className="font-medium">
-                      <Link href={`/records/${record.id}`} className="hover:underline">
+                      <Link href={`/grants/${record.id}`} className="hover:underline">
                         {title}
                       </Link>
                     </TableCell>

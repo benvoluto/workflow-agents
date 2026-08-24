@@ -26,7 +26,7 @@ import { currentRole } from '@/lib/roles'
 import { describe } from '@/lib/spec/expr'
 import { ROLE_LABELS, ROLE_PEOPLE, stateLabel } from '@/lib/spec/types'
 
-export default async function RecordPage({ params, searchParams }: PageProps<'/records/[id]'>) {
+export default async function RecordPage({ params, searchParams }: PageProps<'/grants/[id]'>) {
   const { id } = await params
   const query = await searchParams
   const error = typeof query.error === 'string' ? query.error : null
@@ -71,7 +71,7 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/r
       <PageHeading
         icon={<FileTextIcon size={30} />}
         title={title}
-        back={{ href: '/records', label: 'Records' }}
+        back={{ href: '/grants', label: 'Grants' }}
         aside={<StateChip state={record.state} className="text-sm" />}
         meta={
           <>
@@ -381,7 +381,7 @@ function describeEvent(event: {
   const p = event.payload
   switch (event.type) {
     case 'created':
-      return `created this record${p.source ? ` from ${p.source}` : ''}`
+      return `created this grant${p.source ? ` from ${p.source}` : ''}`
     case 'transition':
       return `${p.label ?? 'moved it'} — ${stateLabel(String(p.from ?? ''))} → ${stateLabel(String(p.to ?? ''))}${p.clause ? ` (${p.clause})` : ''}`
     case 'clock_started':
@@ -395,7 +395,7 @@ function describeEvent(event: {
     case 'spec_applied':
       return `applied spec v${p.version}${p.document ? ` from ${p.document}` : ''}`
     case 'migrated':
-      return `moved this record from v${p.from} to v${p.to}`
+      return `moved this grant from v${p.from} to v${p.to}`
     default:
       return event.type.replace(/_/g, ' ')
   }

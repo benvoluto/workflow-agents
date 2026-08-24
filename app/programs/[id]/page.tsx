@@ -50,10 +50,10 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
               : `${program.entity.toLowerCase()}s`}{' '}
             ·{' '}
             <Link
-              href={`/records?program=${program.id}`}
+              href={`/grants?program=${program.id}`}
               className="text-link underline-offset-4 hover:underline"
             >
-              view records
+              view grants
             </Link>
           </>
         }
@@ -64,17 +64,17 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
           <AlertTitle>{program.name} is now v{applied}</AlertTitle>
           <AlertDescription>
             {behind.length > 0
-              ? `${behind.length} in-flight ${behind.length === 1 ? 'record is' : 'records are'} still on an older version. The Inbox lists what would change for them.`
-              : 'Every record is already on this version.'}
+              ? `${behind.length} in-flight ${behind.length === 1 ? 'grant is' : 'grants are'} still on an older version. The queue lists what would change for them.`
+              : 'Every grant is already on this version.'}
           </AlertDescription>
         </Alert>
       ) : null}
 
       {imported ? (
         <Alert>
-          <AlertTitle>Records imported</AlertTitle>
+          <AlertTitle>Grants imported</AlertTitle>
           <AlertDescription>
-            {mine.length} {mine.length === 1 ? 'record' : 'records'} created from the
+            {mine.length} {mine.length === 1 ? 'grant' : 'grants'} created from the
             spreadsheet. Upload the contract that governs them to give the program real
             rules.
           </AlertDescription>
@@ -84,7 +84,7 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
       {migrated ? (
         <Alert>
           <AlertTitle>
-            {migrated} {migrated === '1' ? 'record' : 'records'} moved to v
+            {migrated} {migrated === '1' ? 'grant' : 'grants'} moved to v
             {program.currentVersion}
           </AlertTitle>
           <AlertDescription>
@@ -113,7 +113,7 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
       {behind.length > 0 ? (
         <Alert>
           <AlertTitle>
-            {behind.length} {behind.length === 1 ? 'record is' : 'records are'} on an older
+            {behind.length} {behind.length === 1 ? 'grant is' : 'grants are'} on an older
             version
           </AlertTitle>
           <AlertDescription className="flex flex-wrap items-center gap-3">

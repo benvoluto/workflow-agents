@@ -86,8 +86,8 @@ export function AppHeader({ role }: { role: Role }) {
               <DropdownMenuSeparator />
 
               <DropdownMenuGroup>
-                <DropdownMenuItem render={<Link href="/records" />}>
-                  All records
+                <DropdownMenuItem render={<Link href="/grants" />}>
+                  All grants
                 </DropdownMenuItem>
                 <DropdownMenuItem render={<Link href="/programs" />}>
                   All programs

@@ -198,7 +198,7 @@ export default async function ReviewPage({ params }: PageProps<'/review/[id]'>) 
                 : 'Approve and create the program'}
             </Button>
             <span className="text-sm text-muted-foreground">
-              Records already in flight stay on their current version.
+              Grants already in flight stay on their current version.
             </span>
           </div>
         )}
@@ -409,12 +409,12 @@ function Impact({
   return (
     <div className="rounded-lg border border-amber-600/25 bg-amber-50/60 px-3 py-2.5 text-sm dark:bg-amber-950/20">
       <p className="font-medium">
-        {affected.length} in-flight {affected.length === 1 ? 'record' : 'records'} {sentence}.
+        {affected.length} in-flight {affected.length === 1 ? 'grant' : 'grants'} {sentence}.
       </p>
       <ul className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
         {affected.map((r) => (
           <li key={r.id}>
-            <Link href={`/records/${r.id}`} className="underline-offset-4 hover:underline">
+            <Link href={`/grants/${r.id}`} className="underline-offset-4 hover:underline">
               {titleKey ? String(r.data[titleKey]) : r.ref}
             </Link>
             {amountKey ? ` — ${money(r.data[amountKey])}` : ''}
