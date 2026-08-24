@@ -113,7 +113,7 @@ export function UploadDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger ? (
-        <DialogTrigger render={trigger} />
+        <DialogTrigger nativeButton render={trigger} />
       ) : (
         <DialogTrigger render={<Button size="sm" />}>Upload a document</DialogTrigger>
       )}

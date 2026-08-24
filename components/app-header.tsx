@@ -40,6 +40,7 @@ export function AppHeader({ role }: { role: Role }) {
         <div className="ml-auto">
           <DropdownMenu>
             <DropdownMenuTrigger
+              nativeButton
               render={
                 <button
                   type="button"

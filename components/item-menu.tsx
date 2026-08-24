@@ -1,10 +1,12 @@
 'use client'
 
+import { useTransition } from 'react'
 import Link from 'next/link'
 import { DotsThreeVerticalIcon } from '@phosphor-icons/react'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -19,9 +21,17 @@ export function ItemMenu({
   itemId: string
   documentHref: string | null
 }) {
+  const [, startTransition] = useTransition()
+
   return (
     <DropdownMenu>
+      {/*
+        nativeButton tells Base UI this really is a <button>, so it stops
+        layering non-native button semantics (role, aria-disabled) on top of an
+        element that already has them.
+      */}
       <DropdownMenuTrigger
+        nativeButton
         render={
           <button
             type="button"
@@ -32,20 +42,22 @@ export function ItemMenu({
       >
         <DotsThreeVerticalIcon size={20} weight="bold" />
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem render={<Link href={href} />}>Open</DropdownMenuItem>
-        {documentHref ? (
-          <DropdownMenuItem render={<Link href={documentHref} />}>
-            View source document
-          </DropdownMenuItem>
-        ) : null}
-        <form action={snoozeItem}>
-          <input type="hidden" name="itemId" value={itemId} />
-          <input type="hidden" name="days" value="14" />
-          <DropdownMenuItem render={<button type="submit" className="w-full cursor-pointer" />}>
+        <DropdownMenuGroup>
+          <DropdownMenuItem render={<Link href={href} />}>Open</DropdownMenuItem>
+          {documentHref ? (
+            <DropdownMenuItem render={<Link href={documentHref} />}>
+              View source document
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={() => startTransition(() => snoozeItem(itemId, 14))}
+          >
             Snooze for two weeks
           </DropdownMenuItem>
-        </form>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )

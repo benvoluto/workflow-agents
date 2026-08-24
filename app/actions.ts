@@ -22,9 +22,7 @@ import { SAMPLES } from '@/lib/samples.generated'
  * running, the rule stays unmet, and the item comes back on its own. It is a
  * way to say "not today", not a way to close something.
  */
-export async function snoozeItem(formData: FormData) {
-  const itemId = String(formData.get('itemId') ?? '')
-  const days = Number(formData.get('days') ?? 3)
+export async function snoozeItem(itemId: string, days = 3) {
   const role = await currentRole()
   if (!itemId) return
 
@@ -39,8 +37,7 @@ export async function snoozeItem(formData: FormData) {
   revalidatePath('/', 'layout')
 }
 
-export async function unsnoozeItem(formData: FormData) {
-  const itemId = String(formData.get('itemId') ?? '')
+export async function unsnoozeItem(itemId: string) {
   if (!itemId) return
   await db.delete(schema.snoozes).where(eq(schema.snoozes.itemId, itemId))
   revalidatePath('/', 'layout')
