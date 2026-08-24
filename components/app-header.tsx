@@ -1,18 +1,25 @@
+'use client'
+
+import { useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { CaretDownIcon, UserIcon } from '@phosphor-icons/react/dist/ssr'
+import { CaretDownIcon, UserIcon } from '@phosphor-icons/react'
 import { setRole } from '@/app/actions'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ROLES, ROLE_LABELS, ROLE_PEOPLE, type Role } from '@/lib/spec/types'
+import { cn } from '@/lib/utils'
 
 export function AppHeader({ role }: { role: Role }) {
+  const [pending, startTransition] = useTransition()
+
   return (
     <header className="mx-auto w-full max-w-[1600px] px-8 pt-8 pb-6">
       <div className="flex flex-wrap items-center gap-4">
@@ -42,7 +49,7 @@ export function AppHeader({ role }: { role: Role }) {
             >
               <span className="flex items-center gap-2.5 px-4 py-2.5">
                 <UserIcon size={18} className="text-muted-foreground" />
-                <span className="font-medium">
+                <span className={cn('font-medium', pending && 'opacity-60')}>
                   {ROLE_PEOPLE[role]}, {ROLE_LABELS[role]}
                 </span>
               </span>
@@ -52,13 +59,19 @@ export function AppHeader({ role }: { role: Role }) {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel>View the queue as</DropdownMenuLabel>
-              {ROLES.map((r) => (
-                <form action={setRole} key={r}>
-                  <input type="hidden" name="role" value={r} />
+              {/*
+                The label is Base UI's Menu.GroupLabel, which throws if it is not
+                inside a Group. And the action is called directly rather than
+                submitted from a form, because the item unmounts the instant it
+                is clicked, and a disconnected submitter cancels the submission.
+              */}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>View the queue as</DropdownMenuLabel>
+                {ROLES.map((r) => (
                   <DropdownMenuItem
-                    render={<button type="submit" className="w-full cursor-pointer" />}
-                    className={r === role ? 'bg-accent' : undefined}
+                    key={r}
+                    onClick={() => startTransition(() => setRole(r))}
+                    className={cn('cursor-pointer', r === role && 'bg-accent')}
                   >
                     <span className="flex flex-col items-start">
                       <span>{ROLE_PEOPLE[r]}</span>
@@ -67,15 +80,19 @@ export function AppHeader({ role }: { role: Role }) {
                       </span>
                     </span>
                   </DropdownMenuItem>
-                </form>
-              ))}
+                ))}
+              </DropdownMenuGroup>
+
               <DropdownMenuSeparator />
-              <DropdownMenuItem render={<Link href="/records" />}>
-                All records
-              </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href="/programs" />}>
-                All programs
-              </DropdownMenuItem>
+
+              <DropdownMenuGroup>
+                <DropdownMenuItem render={<Link href="/records" />}>
+                  All records
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link href="/programs" />}>
+                  All programs
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

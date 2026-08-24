@@ -40,7 +40,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <AppHeader role={role} />
 
-        <main className="mx-auto w-full max-w-[1600px] flex-1 px-8 pb-16">{children}</main>
+        <main className="mx-auto w-full max-w-[1600px] flex-1 px-8 pb-10">{children}</main>
 
         <AskBar
           programs={options}

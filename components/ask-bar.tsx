@@ -50,13 +50,13 @@ export function AskBar({
   )
 
   return (
-    <div className="border-t bg-card/60">
-      <div className="mx-auto grid w-full max-w-[1600px] gap-8 px-8 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className="sticky bottom-0 z-30 border-t bg-card/85 backdrop-blur supports-[backdrop-filter]:bg-card/70">
+      <div className="mx-auto grid w-full max-w-[1600px] gap-x-8 gap-y-6 px-8 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
           <form action={formAction} className="relative">
             <textarea
               name="question"
-              rows={3}
+              rows={2}
               placeholder="Ask any question…"
               className="w-full resize-none rounded-2xl border bg-card px-5 py-4 pr-14 text-[15px] outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/30"
             />
@@ -64,7 +64,7 @@ export function AskBar({
           </form>
 
           {state?.answer ? (
-            <div className="mt-3 rounded-2xl border bg-card px-5 py-4">
+            <div className="mt-3 max-h-[28vh] overflow-y-auto rounded-2xl border bg-card px-5 py-4">
               <p className="text-xs text-muted-foreground">{state.question}</p>
               <p className="mt-1.5 text-[15px] leading-relaxed whitespace-pre-wrap">
                 {state.answer}

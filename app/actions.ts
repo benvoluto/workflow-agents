@@ -46,8 +46,14 @@ export async function unsnoozeItem(formData: FormData) {
   revalidatePath('/', 'layout')
 }
 
-export async function setRole(formData: FormData) {
-  const role = String(formData.get('role') ?? '')
+/**
+ * Switch whose queue you are looking at.
+ *
+ * Takes the role directly rather than a FormData, because the caller is a menu
+ * item that unmounts the moment it is clicked — a form submitted by a button
+ * that has just been removed from the document does not reliably go through.
+ */
+export async function setRole(role: string) {
   if (!(ROLES as readonly string[]).includes(role)) return
   const store = await cookies()
   store.set(ROLE_COOKIE, role, { path: '/', maxAge: 60 * 60 * 24 * 365 })
