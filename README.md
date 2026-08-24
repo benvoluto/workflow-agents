@@ -55,7 +55,10 @@ job.
 
 ## The demo
 
-Program A is seeded at v2 with twelve awards in flight, so the Inbox has
+Step-by-step script, including timings, fallbacks and the questions it tends to
+provoke: **[DEMO.md](DEMO.md)**.
+
+Program A is seeded at v2 with twelve awards in flight, so the queue has
 something to say on first load. Steps 4 and 5 run live against the real
 extractor.
 
@@ -90,6 +93,7 @@ dialog.
 | `components/` | The interface: split queue cards, program cards, the funnel, the explain and provenance panels |
 | `design/figma-sample-data.md` | Copy and data for designing the screens |
 | `design/programofficerview.png` | The design this interface follows |
+| `DEMO.md` | The demo script |
 
 Versions are rows, never updates. Records pin to the version they are being run
 under, and moving one forward is an explicit decision with an event to show for
