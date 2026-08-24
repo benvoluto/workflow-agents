@@ -1,4 +1,4 @@
-# Workflow Agents
+# Grants•OS
 
 Upload the documents that govern a process, and get a running app: real records,
 a real lifecycle, and a queue that tells people what needs them. Change the

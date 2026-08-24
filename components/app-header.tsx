@@ -19,14 +19,14 @@ export function AppHeader({ role }: { role: Role }) {
         <Link href="/" className="flex items-center gap-4">
           <Image
             src="/liif-logo.svg"
-            alt="Liiff"
+            alt="Grants•OS"
             width={98}
             height={94}
             className="h-[58px] w-auto"
             priority
           />
           <span className="rounded-full bg-secondary px-4 py-1.5 text-sm font-semibold tracking-[0.12em] text-muted-foreground">
-            WORKFLOW&middot;AGENTS
+            GRANTS•OS
           </span>
         </Link>
 

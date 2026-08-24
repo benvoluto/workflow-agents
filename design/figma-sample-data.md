@@ -8,7 +8,7 @@ Everything below is mutually consistent — the same records, amounts, dates, an
 
 ## 0. Global chrome
 
-**Product name:** Workflow Agents
+**Product name:** Grants•OS
 **Header nav:** Inbox · Records · Programs
 **Role switcher (header, right):** a segmented control or dropdown, three options, one active at a time.
 

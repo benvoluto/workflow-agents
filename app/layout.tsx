@@ -17,7 +17,7 @@ import { SAMPLE_OPTIONS } from '@/lib/samples'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Workflow Agents',
+  title: 'Grants•OS',
   description:
     'Documents become a running workflow. Change the documents and the workflow changes with them.',
 }
