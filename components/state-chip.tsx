@@ -20,7 +20,7 @@ function toneFor(state: string): string {
 
 export function StateChip({ state, className }: { state: string; className?: string }) {
   return (
-    <Badge variant="outline" className={cn('font-medium', toneFor(state), className)}>
+    <Badge variant="outline" className={cn('p-3 font-medium', toneFor(state), className)}>
       {stateLabel(state)}
     </Badge>
   )
