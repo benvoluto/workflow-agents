@@ -87,10 +87,11 @@ function ProgramPicker({ programs }: { programs: ProgramOption[] }) {
             {p.name} (v{p.version})
           </option>
         ))}
-        <option value="">Start a new program</option>
+        <option value="">— Start a new program —</option>
       </select>
       <p className="text-xs text-muted-foreground">
-        A spreadsheet adds records. A policy document proposes changes to the rules.
+        A spreadsheet adds records to the chosen program. A contract or amendment
+        proposes changes to its rules.
       </p>
     </div>
   )
@@ -131,25 +132,14 @@ export function UploadDialog({
           </TabsList>
 
           <TabsContent value="sample" className="mt-4">
-            <div className="grid gap-2">
-              {samples.map((s) => (
-                <form key={s.id} action={loadSample}>
-                  <input type="hidden" name="sampleId" value={s.id} />
-                  <input
-                    type="hidden"
-                    name="programId"
-                    value={
-                      s.name === 'amendment-01.md' ? (programs[0]?.id ?? '') : ''
-                    }
-                  />
-                  <SampleRow sample={s} />
-                </form>
-              ))}
-              <p className="mt-1 text-xs text-muted-foreground">
-                Amendments apply to the program above them. Contracts and spreadsheets
-                for a program you do not have yet will create it.
-              </p>
-            </div>
+            <form action={loadSample} className="grid gap-4">
+              <ProgramPicker programs={programs} />
+              <div className="grid gap-2">
+                {samples.map((s) => (
+                  <SampleRow key={s.id} sample={s} />
+                ))}
+              </div>
+            </form>
           </TabsContent>
 
           <TabsContent value="file" className="mt-4">
@@ -203,6 +193,8 @@ function SampleRow({ sample }: { sample: SampleOption }) {
   return (
     <button
       type="submit"
+      name="sampleId"
+      value={sample.id}
       disabled={pending}
       className="flex w-full cursor-pointer items-center justify-between rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-accent disabled:opacity-60"
     >

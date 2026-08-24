@@ -3,11 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { and, asc, eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { db, schema } from '@/lib/db'
 import { availableTransitions, validateTransition, type RecordLike } from '@/lib/engine/runtime'
 import { applyOps, type DeltaOp } from '@/lib/spec/delta'
-import { coerceValue, extractDelta, inferSpecFromTable, parseCsv } from '@/lib/ingest/extract'
+import { coerceValue, extractDelta } from '@/lib/ingest/extract'
+import { createProgramFromTable, currentSpecOf, importRows } from '@/lib/ingest/import'
 import { actorFor, currentRole, ROLE_COOKIE, ROLES, type Role } from '@/lib/roles'
 import { archiveDocument } from '@/lib/storage/blob'
 import type { Spec } from '@/lib/spec/types'
@@ -51,28 +52,6 @@ export async function setRole(formData: FormData) {
   const store = await cookies()
   store.set(ROLE_COOKIE, role, { path: '/', maxAge: 60 * 60 * 24 * 365 })
   revalidatePath('/', 'layout')
-}
-
-async function refPrefixFor(programId: string, entity: string): Promise<string> {
-  const [existing] = await db
-    .select({ ref: schema.records.ref })
-    .from(schema.records)
-    .where(eq(schema.records.programId, programId))
-    .orderBy(asc(schema.records.ref))
-    .limit(1)
-  if (existing?.ref?.includes('-')) return existing.ref.split('-')[0]
-  return entity.slice(0, 3).toUpperCase() || 'REC'
-}
-
-async function nextRefNumber(programId: string): Promise<number> {
-  const rows = await db
-    .select({ ref: schema.records.ref })
-    .from(schema.records)
-    .where(eq(schema.records.programId, programId))
-  const numbers = rows
-    .map((r) => Number(r.ref.split('-')[1]))
-    .filter((n) => Number.isFinite(n))
-  return numbers.length > 0 ? Math.max(...numbers) + 1 : 1001
 }
 
 /**
@@ -170,98 +149,6 @@ async function ingest(input: {
   redirect(`/review/${delta.id}`)
 }
 
-async function currentSpecOf(
-  programId: string,
-): Promise<{ spec: Spec; version: number } | null> {
-  const rows = await db
-    .select()
-    .from(schema.programVersions)
-    .where(eq(schema.programVersions.programId, programId))
-    .orderBy(asc(schema.programVersions.version))
-  const latest = rows[rows.length - 1]
-  return latest ? { spec: latest.spec, version: latest.version } : null
-}
-
-async function createProgramFromTable(name: string, bodyText: string): Promise<string> {
-  const { spec } = await inferSpecFromTable({ fileName: name, tableText: bodyText })
-  const [program] = await db
-    .insert(schema.programs)
-    .values({ name: spec.name, entity: spec.entity })
-    .returning()
-
-  const [doc] = await db
-    .select()
-    .from(schema.documents)
-    .where(eq(schema.documents.name, name))
-    .orderBy(sql`uploaded_at desc`)
-    .limit(1)
-
-  await db.insert(schema.programVersions).values({
-    programId: program.id,
-    version: 1,
-    spec,
-    sourceDocumentId: doc?.id ?? null,
-    approvedBy: null,
-    summary: `Created from ${name} — fields and a placeholder lifecycle.`,
-  })
-  return program.id
-}
-
-/**
- * Map spreadsheet columns onto the program's fields and create a record per row.
- *
- * Matching is by key first, then by label, both case- and separator-insensitive,
- * because the column that produced a field is rarely spelled the way the field
- * ended up being named.
- */
-async function importRows(programId: string, csvText: string) {
-  const current = await currentSpecOf(programId)
-  if (!current) return
-  const { spec, version } = current
-  const { headers, rows } = parseCsv(csvText)
-  if (rows.length === 0) return
-
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
-  const columnToField = headers.map((h) => {
-    const n = norm(h)
-    return (
-      spec.fields.find((f) => norm(f.key) === n) ??
-      spec.fields.find((f) => norm(f.label) === n) ??
-      null
-    )
-  })
-
-  const prefix = await refPrefixFor(programId, spec.entity)
-  let next = await nextRefNumber(programId)
-
-  for (const row of rows) {
-    const data: Record<string, unknown> = {}
-    row.forEach((cell, i) => {
-      const field = columnToField[i]
-      if (field) data[field.key] = coerceValue(cell, field.type)
-    })
-    if (Object.keys(data).length === 0) continue
-
-    const [record] = await db
-      .insert(schema.records)
-      .values({
-        ref: `${prefix}-${next++}`,
-        programId,
-        specVersion: version,
-        state: spec.initial || spec.states[0] || 'new',
-        data,
-      })
-      .returning()
-
-    await db.insert(schema.events).values({
-      recordId: record.id,
-      type: 'created',
-      actor: 'System',
-      payload: { source: 'spreadsheet import' },
-    })
-  }
-}
-
 /**
  * Approve a reviewed delta. Writes a NEW version row rather than updating the
  * current one, and leaves existing records pinned where they are — a change to
@@ -304,6 +191,22 @@ export async function approveDelta(formData: FormData) {
 
   const spec = applyOps(baseSpec, chosen)
   if (!spec.initial && spec.states.length > 0) spec.initial = spec.states[0]
+
+  // A program built from a spreadsheet is named by the model's best guess at
+  // what the columns describe. The first policy document to arrive knows the
+  // real name, so let it say so — but only while nothing has been named by a
+  // document yet, so a later amendment can never quietly rename a program.
+  const named = baseSpec.rules.some((r) => r.source) || baseSpec.clocks.some((c) => c.source)
+  if (!named && document) {
+    const title = titleFromDocument(document.name, document.bodyText)
+    if (title && title !== spec.name) {
+      spec.name = title
+      await db
+        .update(schema.programs)
+        .set({ name: title })
+        .where(eq(schema.programs.id, programId))
+    }
+  }
 
   await db.insert(schema.programVersions).values({
     programId,

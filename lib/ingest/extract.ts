@@ -176,6 +176,10 @@ Matching existing elements:
   that element's existing id exactly. This is how the reviewer is shown the
   conflict, so getting the id right matters more than anything else you do.
 - Use mode "add" only when nothing with that meaning already exists.
+- Before adding a field, check the existing fields for one that already carries
+  that meaning under a different name. A program with "provider" does not also
+  need "recipient_name"; a program with "amount" does not also need
+  "award_amount". Adding a duplicate splits a record's data in two.
 - Choose stable, descriptive snake_case ids for new elements, e.g.
   "dual_signature", "disbursement_slo", "release_tranche".
 - Every entry carries a "summary": one plain-English sentence, written for
