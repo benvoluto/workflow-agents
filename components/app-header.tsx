@@ -25,14 +25,14 @@ export function AppHeader({ role }: { role: Role }) {
       <div className="flex flex-wrap items-center gap-4">
         <Link href="/" className="flex items-end justify-end gap-4">
           <Image
-            src="/liif-logo.svg"
+            src="/ss-logo.svg"
             alt="Grants•OS"
-            width={98}
-            height={94}
-            className="h-[58px] w-auto"
+            width={300}
+            height={70}
+            className="h-[70px] w-auto"
             priority
           />
-          <span className="rounded-full bg-[#E1E6F1] px-4 py-1.5 text-sm font-semibold text-muted-foreground">
+          <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-muted-foreground">
             GRANTS•OS
           </span>
         </Link>
