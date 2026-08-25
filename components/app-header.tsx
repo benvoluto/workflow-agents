@@ -32,9 +32,6 @@ export function AppHeader({ role }: { role: Role }) {
             className="h-[70px] w-auto"
             priority
           />
-          <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-muted-foreground">
-            GRANTS•OS
-          </span>
         </Link>
 
         <div className="ml-auto">
