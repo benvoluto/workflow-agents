@@ -62,9 +62,9 @@ Program A is seeded at v2 with twelve awards in flight, so the queue has
 something to say on first load. Steps 4 and 5 run live against the real
 extractor.
 
-1. **To Review.** Three payments past their SLO, two approaching, two awaiting a
-   CFO signature, one missing its evidence link. Switch role in the header — the
-   same grants, three different queues.
+1. **To Review.** Three payments past their service level objective for time, two 
+   approaching, two awaiting a CFO signature, one missing its evidence link. 
+   Switch role in the header — the same grants, three different queues.
 2. **Any grant.** Fields, available actions with the reasons they are blocked,
    and full history.
 3. **Program.** The spec rendered readably. Click any clause chip for the
