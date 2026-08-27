@@ -18,26 +18,66 @@ approves. Only then does a new version exist.
 
 ## Running it
 
+Two things are needed: a Postgres database and an Anthropic API key. Everything
+else has a working default.
+
+### Setting it up on Vercel
+
 ```bash
 pnpm install
-vercel link                 # links to the Vercel project
-vercel env pull .env.local  # DATABASE_URL, BLOB_READ_WRITE_TOKEN, model access
-pnpm db:migrate             # create the schema
-pnpm seed                   # Program A pre-seeded at v2
+vercel link                                              # create or link the project
+vercel integration add neon                              # Postgres — sets DATABASE_URL
+vercel blob create-store documents --access private      # optional, see below
+vercel env add ANTHROPIC_API_KEY                         # prompts for the key
+vercel env pull .env.local                               # bring the whole set down
+pnpm db:migrate                                          # create the schema
+pnpm seed                                                # Program A pre-seeded at v2
+vercel deploy --prod
+```
+
+`db:migrate` and `seed` run from your machine against whatever `DATABASE_URL`
+points at, so run them once after the database exists and before the first
+visit. `seed` truncates every table — it is a reset, not an increment.
+
+The Blob store archives the original bytes of every uploaded document. It has to
+be private, because the app reads documents back server-side rather than by
+public URL. Skip it and uploads still extract and version correctly; there is
+just no original to link back to.
+
+### Running it locally
+
+If the project is already linked, `vercel env pull .env.local` is the whole
+setup. Otherwise copy [`.env.example`](.env.example) to `.env.local` and fill in
+`DATABASE_URL` and `ANTHROPIC_API_KEY` by hand — a Neon connection string and a
+key from [the Anthropic console](https://console.anthropic.com/settings/keys)
+are enough.
+
+```bash
+pnpm install
+pnpm db:migrate
+pnpm seed
 pnpm dev
 ```
+
+The database driver is Neon's serverless HTTP client, so `DATABASE_URL` has to
+point at a Neon database (or a Neon-compatible proxy) rather than a plain local
+Postgres.
 
 ### Model access
 
 Extraction runs on Claude Opus 5. Two routes, resolved in `lib/ingest/model.ts`:
 
 - **`ANTHROPIC_API_KEY` set** — calls the Anthropic API directly. This is the
-  route in use.
+  route in use, and the one the setup above configures.
 - **Otherwise** — routes through Vercel AI Gateway using OIDC, so no provider key
   is needed. This needs paid AI Gateway credits on the team; Anthropic models are
   not available on the Gateway's free tier.
 
 Override the model with `EXTRACTION_MODEL`.
+
+With neither route working, uploads fall back to extraction results committed for
+the documents in `/samples`, so the demo still runs — but a document of your own
+will not extract.
 
 ### The wire format is not the domain model
 
