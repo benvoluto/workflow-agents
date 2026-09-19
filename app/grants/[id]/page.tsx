@@ -10,17 +10,15 @@ import { Separator } from '@/components/ui/separator'
 import { FieldEditor } from '@/components/field-editor'
 import { Provenance } from '@/components/provenance'
 import { StateChip } from '@/components/state-chip'
-import { attention } from '@/lib/engine/attention'
 import { availableTransitions, missingRequiredFields, unmetRules } from '@/lib/engine/runtime'
 import { dateTime, displayValue, money, shortDate } from '@/lib/format'
 import { provenanceFor } from '@/lib/provenance'
 import {
   getEvents,
+  getItemsForRecords,
+  getPartyIndex,
   getPrograms,
   getRecord,
-  getRecords,
-  sharedParties,
-  toContexts,
 } from '@/lib/queries'
 import { currentRole } from '@/lib/roles'
 import { describe } from '@/lib/spec/expr'
@@ -31,11 +29,10 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/g
   const query = await searchParams
   const error = typeof query.error === 'string' ? query.error : null
 
-  const [role, record, programs, allRecords] = await Promise.all([
+  const [role, record, programs] = await Promise.all([
     currentRole(),
     getRecord(id),
     getPrograms(),
-    getRecords(),
   ])
   if (!record) notFound()
 
@@ -46,15 +43,19 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/g
   const spec = program.versions.find((v) => v.version === record.specVersion)?.spec
   if (!spec) notFound()
 
-  const events = await getEvents(record.id)
-  const now = new Date()
-  const items = attention(toContexts(programs), allRecords, now).filter(
-    (i) => i.recordId === record.id,
-  )
+  // Read straight out of the materialised queue by record id, rather than
+  // recomputing every program to keep the handful of rows about this one.
+  // Everything about this record, not just what this role would see in the
+  // queue — on a record's own page the whole picture is the point.
+  const [events, itemsByRecord] = await Promise.all([
+    getEvents(record.id),
+    getItemsForRecords([record.id]),
+  ])
+  const items = itemsByRecord.get(record.id) ?? []
 
   const titleKey = spec.fields.find((f) => f.type === 'text')?.key
   const title = titleKey ? String(record.data[titleKey] ?? record.ref) : record.ref
-  const shared = sharedParties(programs, allRecords)
+  const shared = await getPartyIndex(programs)
   const alsoIn = (shared.get(title) ?? []).filter((pid) => pid !== program.id)
 
   const actions = availableTransitions(spec, record, role)

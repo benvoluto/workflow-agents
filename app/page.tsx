@@ -1,27 +1,29 @@
+import Link from 'next/link'
 import { BuildingsIcon, TrayIcon } from '@phosphor-icons/react/dist/ssr'
 import { AttentionCard } from '@/components/attention-card'
 import { FilterTabs, type Tab, type Tone } from '@/components/filter-tabs'
 import { ProgramCard, type FunnelStage, type ProgramCardData } from '@/components/program-card'
 import { GrantsPreview, type GrantPreviewRow } from '@/components/grants-preview'
 import { UploadDialog } from '@/components/upload-dialog'
+import { type Urgency } from '@/lib/engine/attention'
 import {
-  attention,
-  visibleTo,
-  type AttentionItem,
-  type Urgency,
-} from '@/lib/engine/attention'
-import {
+  getFlaggedRecordIds,
+  getFlaggedStates,
   getPendingDeltas,
   getPrograms,
-  getRecords,
-  getSnoozedItemIds,
-  toContexts,
+  getQueue,
+  getQueueCounts,
+  getRecentRecords,
+  getStateCounts,
   type ProgramSummary,
   type RecordRow,
 } from '@/lib/queries'
 import { currentRole } from '@/lib/roles'
 import { SAMPLE_OPTIONS } from '@/lib/samples'
 import { ROLE_LABELS, ROLE_PEOPLE, stateLabel, type Spec } from '@/lib/spec/types'
+
+/** How much of the queue one screen shows before it starts pointing at /grants. */
+const QUEUE_PAGE = 50
 
 const URGENCY_TAB: { key: Urgency; label: string; tone: Tone }[] = [
   { key: 'overdue', label: 'Overdue', tone: 'overdue' },
@@ -45,35 +47,56 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
   const status = typeof params.status === 'string' ? params.status : null
   const error = typeof params.error === 'string' ? params.error : null
 
-  const [role, programs, records, pending, snoozed] = await Promise.all([
-    currentRole(),
-    getPrograms(),
-    getRecords(),
-    getPendingDeltas(),
-    getSnoozedItemIds(),
-  ])
+  const role = await currentRole()
 
-  const all = attention(toContexts(programs), records, new Date())
-  const mine = all.filter((i) => visibleTo(i, role))
-  const live = mine.filter((i) => !snoozed.has(i.id))
+  // Everything here is a count, a page, or a lookup by key. Nothing on this
+  // screen loads the full set of grants any more, so what it costs to render
+  // no longer depends on how many are in flight.
+  const [programs, pending, counts, visibleItems, flaggedIds, flaggedStates, stateCounts] =
+    await Promise.all([
+      getPrograms(),
+      getPendingDeltas(),
+      getQueueCounts(role),
+      getQueue({ role, urgency: queue, limit: QUEUE_PAGE }),
+      getFlaggedRecordIds(),
+      getFlaggedStates(),
+      getStateCounts(),
+    ])
 
   const queueTabs: Tab[] = [
     { key: 'all', label: 'All', href: '/', active: !queue, tone: 'neutral' },
-    ...URGENCY_TAB.filter((t) => live.some((i) => i.urgency === t.key)).map((t) => ({
+    ...URGENCY_TAB.filter((t) => counts.byUrgency[t.key] > 0).map((t) => ({
       key: t.key,
       label: t.label,
-      count: live.filter((i) => i.urgency === t.key).length,
+      count: counts.byUrgency[t.key],
       tone: t.tone,
       href: `/?queue=${t.key}${status ? `&status=${status}` : ''}`,
       active: queue === t.key,
     })),
   ]
 
-  const visibleItems = queue ? live.filter((i) => i.urgency === queue) : live
+  const live = programs.filter((p) => p.currentSpec)
+  const recentByProgram = await Promise.all(
+    live.map((p) => getRecentRecords(p.id, 5)),
+  )
+  const totals = new Map(
+    live.map((p, i) => [
+      p.id,
+      [...(stateCounts.get(p.id)?.values() ?? [])].reduce((a, b) => a + b, 0) ||
+        recentByProgram[i].length,
+    ]),
+  )
 
-  const cards = programs
-    .filter((p) => p.currentSpec)
-    .map((p) => buildProgramCard(p, records, all, pending))
+  const cards = live.map((p, i) =>
+    buildProgramCard(p, {
+      total: totals.get(p.id) ?? 0,
+      byState: stateCounts.get(p.id) ?? new Map(),
+      flaggedStates: flaggedStates.get(p.id) ?? new Set(),
+      recent: recentByProgram[i],
+      flaggedIds,
+      pending,
+    }),
+  )
 
   const statusTabs: Tab[] = [
     {
@@ -110,7 +133,7 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
           <EmptyQueue
             role={role}
             hasPrograms={programs.length > 0}
-            snoozed={mine.length - live.length}
+            snoozed={counts.snoozed}
           />
         ) : (
           <div className="space-y-4">
@@ -120,10 +143,20 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
           </div>
         )}
 
-        {mine.length > live.length && !queue ? (
+        {counts.total > visibleItems.length && !queue ? (
           <p className="mt-5 text-[15px] text-muted-foreground">
-            {mine.length - live.length} snoozed. They come back on their own — the clocks
-            behind them never stopped.
+            Showing {visibleItems.length} of {counts.total}.{' '}
+            <Link href="/grants?flagged=1" className="underline">
+              See everything needing attention
+            </Link>
+            .
+          </p>
+        ) : null}
+
+        {counts.snoozed > 0 && !queue ? (
+          <p className="mt-2 text-[15px] text-muted-foreground">
+            {counts.snoozed} snoozed. They come back on their own — the clocks behind them
+            never stopped.
           </p>
         ) : null}
       </section>
@@ -215,8 +248,15 @@ function EmptyQueue({
  * reached each stage, not how much is sitting in it. That is the shape people
  * mean by a pipeline, and it survives lifecycles this app has never seen,
  * because the stages come from the spec rather than from a fixed list.
+ *
+ * Built from a `group by state` rather than from the records themselves, so the
+ * funnel costs the same at twelve grants and at twelve thousand.
  */
-function funnelFor(spec: Spec, mine: RecordRow[], flagged: Set<string>): FunnelStage[] {
+function funnelFor(
+  spec: Spec,
+  byState: Map<string, number>,
+  flaggedStates: Set<string>,
+): FunnelStage[] {
   if (spec.states.length === 0) return []
   const picks =
     spec.states.length <= 3
@@ -229,39 +269,45 @@ function funnelFor(spec: Spec, mine: RecordRow[], flagged: Set<string>): FunnelS
 
   return picks.map((state) => {
     const at = spec.states.indexOf(state)
-    const reached = mine.filter((r) => spec.states.indexOf(r.state) >= at)
+    const reached = spec.states
+      .slice(at)
+      .reduce((total, s) => total + (byState.get(s) ?? 0), 0)
     return {
       label: stateLabel(state),
-      count: reached.length,
-      flagged: reached.some(
-        (r) => flagged.has(r.id) && spec.states.indexOf(r.state) === at,
-      ),
+      count: reached,
+      flagged: flaggedStates.has(state),
     }
   })
 }
 
+type ProgramCardInputs = {
+  total: number
+  byState: Map<string, number>
+  flaggedStates: Set<string>
+  recent: RecordRow[]
+  flaggedIds: Set<string>
+  pending: { programId: string | null; id: string }[]
+}
+
 function buildProgramCard(
   program: ProgramSummary,
-  records: RecordRow[],
-  items: AttentionItem[],
-  pending: { programId: string | null; id: string }[],
+  input: ProgramCardInputs,
 ): ProgramCardData & {
   status: ProgramStatus
   grantCount: number
   recentGrants: GrantPreviewRow[]
 } {
   const spec = program.currentSpec
-  const mine = records.filter((r) => r.programId === program.id)
-  const flagged = new Set(items.map((i) => i.recordId).filter(Boolean) as string[])
-  const terminal = spec.states.slice(-1)
-  const done = mine.filter((r) => terminal.includes(r.state)).length
+  const { total, byState, flaggedStates, recent, flaggedIds, pending } = input
+  const terminal = spec.states.at(-1)
+  const done = terminal ? (byState.get(terminal) ?? 0) : 0
   const hasPending = pending.some((d) => d.programId === program.id)
 
   const status: ProgramStatus = hasPending
     ? 'in_review'
-    : mine.length > 0 && done === mine.length
+    : total > 0 && done === total
       ? 'closed_out'
-      : mine.length > 0 && done / mine.length > 0.7
+      : total > 0 && done / total > 0.7
         ? 'winding_down'
         : 'active'
 
@@ -270,35 +316,35 @@ function buildProgramCard(
   const entity = program.entity.toLowerCase()
 
   // Most recently moved first: what changed lately is what somebody is most
-  // likely to be looking for.
+  // likely to be looking for. Already ordered and limited by the query.
   const titleKey = spec.fields.find((f) => f.type === 'text')?.key
   const amountKey = spec.fields.find((f) => f.type === 'money')?.key
-  const recentGrants: GrantPreviewRow[] = [...mine]
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-    .slice(0, 5)
-    .map((r) => ({
-      id: r.id,
-      ref: r.ref,
-      title: titleKey ? String(r.data[titleKey] ?? r.ref) : r.ref,
-      amount: amountKey && typeof r.data[amountKey] === 'number' ? (r.data[amountKey] as number) : null,
-      state: r.state,
-      flagged: flagged.has(r.id),
-    }))
+  const recentGrants: GrantPreviewRow[] = recent.map((r) => ({
+    id: r.id,
+    ref: r.ref,
+    title: titleKey ? String(r.data[titleKey] ?? r.ref) : r.ref,
+    amount:
+      amountKey && typeof r.data[amountKey] === 'number'
+        ? (r.data[amountKey] as number)
+        : null,
+    state: r.state,
+    flagged: flaggedIds.has(r.id),
+  }))
 
   return {
     id: program.id,
     name: program.name,
     version: program.currentVersion,
     pendingVersion: hasPending ? program.currentVersion + 1 : null,
-    stages: funnelFor(spec, mine, flagged),
+    stages: funnelFor(spec, byState, flaggedStates),
     status,
-    grantCount: mine.length,
+    grantCount: total,
     recentGrants,
     explain: {
       id: `program:${program.id}`,
       reason: 'Program',
       headline: program.name,
-      subline: `Version ${program.currentVersion}, with ${rules} ${rules === 1 ? 'rule' : 'rules'} and ${clocks} ${clocks === 1 ? 'clock' : 'clocks'}, running ${mine.length} ${mine.length === 1 ? entity : `${entity}s`} through ${spec.states.map(stateLabel).join(' → ')}`,
+      subline: `Version ${program.currentVersion}, with ${rules} ${rules === 1 ? 'rule' : 'rules'} and ${clocks} ${clocks === 1 ? 'clock' : 'clocks'}, running ${total.toLocaleString('en-US')} ${total === 1 ? entity : `${entity}s`} through ${spec.states.map(stateLabel).join(' \u2192 ')}`,
       programName: program.name,
       recordRef: null,
       ownerName: program.versions.at(-1)?.approvedBy ?? null,

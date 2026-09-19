@@ -15,6 +15,13 @@
       "when": 1787521483511,
       "tag": "0001_shocking_post",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789847122172,
+      "tag": "0002_dark_wild_child",
+      "breakpoints": true
     }
   ]
 }

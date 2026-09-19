@@ -12,12 +12,23 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StateChip } from '@/components/state-chip'
-import { attention } from '@/lib/engine/attention'
 import { ageLabel, money } from '@/lib/format'
-import { getPrograms, getRecords, sharedParties, toContexts } from '@/lib/queries'
+import {
+  countRecords,
+  getFlaggedRecordIds,
+  getItemsForRecords,
+  getPartyIndex,
+  getPrograms,
+  getRecordPage,
+  getStateCounts,
+} from '@/lib/queries'
 import { owningRole } from '@/lib/engine/runtime'
 import { ROLE_LABELS, stateLabel } from '@/lib/spec/types'
 import { cn, STRETCHED } from '@/lib/utils'
+
+/** One screen of grants. The point of paging is that the cost of this page no
+ *  longer moves when a program goes from twelve awards to twelve thousand. */
+const PAGE_SIZE = 50
 
 export default async function RecordsPage({ searchParams }: PageProps<'/grants'>) {
   const params = await searchParams
@@ -25,19 +36,41 @@ export default async function RecordsPage({ searchParams }: PageProps<'/grants'>
   const stateFilter = typeof params.state === 'string' ? params.state : null
   const onlyFlagged = params.flagged === '1'
 
-  const [programs, records] = await Promise.all([getPrograms(), getRecords()])
+  const page = Number(typeof params.page === 'string' ? params.page : '1') || 1
   const now = new Date()
-  const items = attention(toContexts(programs), records, now)
-  const shared = sharedParties(programs, records)
 
-  const flaggedIds = new Set(items.map((i) => i.recordId).filter(Boolean) as string[])
+  const [programs, flaggedIds, stateCounts, total] = await Promise.all([
+    getPrograms(),
+    getFlaggedRecordIds(programFilter ?? undefined),
+    getStateCounts(),
+    countRecords(programFilter ?? undefined),
+  ])
 
-  let visible = records
-  if (programFilter) visible = visible.filter((r) => r.programId === programFilter)
-  if (stateFilter) visible = visible.filter((r) => r.state === stateFilter)
-  if (onlyFlagged) visible = visible.filter((r) => flaggedIds.has(r.id))
+  // One page of records, chosen in SQL. "Needs attention" is a filter on the
+  // materialised queue rather than a scan: the ids come from the cache, and only
+  // those rows are fetched.
+  const visible = await getRecordPage({
+    programId: programFilter ?? undefined,
+    state: stateFilter ?? undefined,
+    flaggedOnly: onlyFlagged,
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+  })
 
-  const states = [...new Set(records.map((r) => r.state))].sort()
+  const [items, shared] = await Promise.all([
+    getItemsForRecords(visible.map((r) => r.id)),
+    getPartyIndex(programs),
+  ])
+
+  const matching = onlyFlagged
+    ? flaggedIds.size
+    : stateFilter
+      ? [...stateCounts.values()].reduce((n, byState) => n + (byState.get(stateFilter) ?? 0), 0)
+      : total
+
+  const states = [
+    ...new Set([...stateCounts.values()].flatMap((byState) => [...byState.keys()])),
+  ].sort()
 
   const tabs: Tab[] = [
     {
@@ -75,7 +108,9 @@ export default async function RecordsPage({ searchParams }: PageProps<'/grants'>
         icon={<ListChecksIcon size={30} />}
         title="Grants"
         back={{ href: '/', label: 'To Review' }}
-        meta={`${visible.length} of ${records.length} across ${
+        meta={`${visible.length ? (page - 1) * PAGE_SIZE + 1 : 0}–${
+          (page - 1) * PAGE_SIZE + visible.length
+        } of ${matching.toLocaleString('en-US')} across ${
           programs.length === 1 ? '1 program' : `${programs.length} programs`
         }`}
       />
@@ -112,7 +147,7 @@ export default async function RecordsPage({ searchParams }: PageProps<'/grants'>
                 const amountKey = spec.fields.find((f) => f.type === 'money')?.key
                 const title = titleKey ? String(record.data[titleKey] ?? record.ref) : record.ref
                 const role = owningRole(spec, record)
-                const flags = items.filter((i) => i.recordId === record.id)
+                const flags = items.get(record.id) ?? []
                 const isShared = shared.has(title)
 
                 return (
@@ -176,6 +211,52 @@ export default async function RecordsPage({ searchParams }: PageProps<'/grants'>
           </Table>
         </div>
       )}
+
+      {matching > PAGE_SIZE ? (
+        <div className="flex items-center justify-between text-sm">
+          <PageLink
+            page={page - 1}
+            params={params}
+            disabled={page <= 1}
+            label="\u2190 Previous"
+          />
+          <span className="text-muted-foreground">
+            Page {page} of {Math.max(1, Math.ceil(matching / PAGE_SIZE))}
+          </span>
+          <PageLink
+            page={page + 1}
+            params={params}
+            disabled={page * PAGE_SIZE >= matching}
+            label="Next \u2192"
+          />
+        </div>
+      ) : null}
     </div>
+  )
+}
+
+function PageLink({
+  page,
+  params,
+  disabled,
+  label,
+}: {
+  page: number
+  params: Record<string, string | string[] | undefined>
+  disabled: boolean
+  label: string
+}) {
+  if (disabled) {
+    return <span className="text-muted-foreground/50">{label}</span>
+  }
+  const next = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === 'string' && key !== 'page') next.set(key, value)
+  }
+  next.set('page', String(page))
+  return (
+    <Link href={`/grants?${next.toString()}`} className="underline underline-offset-4">
+      {label}
+    </Link>
   )
 }

@@ -10,7 +10,14 @@ import { Provenance } from '@/components/provenance'
 import { StateChip } from '@/components/state-chip'
 import { dateTime } from '@/lib/format'
 import { provenanceFor } from '@/lib/provenance'
-import { getPendingDeltas, getPrograms, getRecords } from '@/lib/queries'
+import {
+  behindCount,
+  countRecords,
+  getPendingDeltas,
+  getPrograms,
+  getQueueRuns,
+  getVersionCounts,
+} from '@/lib/queries'
 import { describe } from '@/lib/spec/expr'
 import { ROLE_LABELS, stateLabel } from '@/lib/spec/types'
 
@@ -18,18 +25,20 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
   const { id } = await params
   const query = await searchParams
 
-  const [programs, records, pending] = await Promise.all([
+  const [programs, pending, versionCounts, runs] = await Promise.all([
     getPrograms(),
-    getRecords(),
     getPendingDeltas(),
+    getVersionCounts(),
+    getQueueRuns(1),
   ])
   const program = programs.find((p) => p.id === id)
   if (!program?.currentSpec) notFound()
 
   const spec = program.currentSpec
-  const mine = records.filter((r) => r.programId === program.id)
-  const behind = mine.filter((r) => r.specVersion < program.currentVersion)
+  const total = await countRecords(program.id)
+  const behind = behindCount(versionCounts.get(program.id), program.currentVersion)
   const pendingHere = pending.filter((d) => d.programId === program.id)
+  const lastRun = runs[0] ?? null
 
   const applied = typeof query.applied === 'string' ? query.applied : null
   const imported = query.imported === '1'
@@ -44,8 +53,8 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
         aside={<Badge variant="outline">v{program.currentVersion}</Badge>}
         meta={
           <>
-            Version {program.currentVersion} · {mine.length}{' '}
-            {mine.length === 1
+            Version {program.currentVersion} · {total.toLocaleString('en-US')}{' '}
+            {total === 1
               ? program.entity.toLowerCase()
               : `${program.entity.toLowerCase()}s`}{' '}
             ·{' '}
@@ -63,8 +72,8 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
         <Alert>
           <AlertTitle>{program.name} is now v{applied}</AlertTitle>
           <AlertDescription>
-            {behind.length > 0
-              ? `${behind.length} in-flight ${behind.length === 1 ? 'grant is' : 'grants are'} still on an older version. The queue lists what would change for them.`
+            {behind > 0
+              ? `${behind} in-flight ${behind === 1 ? 'grant is' : 'grants are'} still on an older version. The queue lists what would change for them.`
               : 'Every grant is already on this version.'}
           </AlertDescription>
         </Alert>
@@ -74,7 +83,7 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
         <Alert>
           <AlertTitle>Grants imported</AlertTitle>
           <AlertDescription>
-            {mine.length} {mine.length === 1 ? 'grant' : 'grants'} created from the
+            {total.toLocaleString('en-US')} {total === 1 ? 'grant' : 'grants'} created from the
             spreadsheet. Upload the contract that governs them to give the program real
             rules.
           </AlertDescription>
@@ -110,10 +119,10 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
         </Alert>
       ) : null}
 
-      {behind.length > 0 ? (
+      {behind > 0 ? (
         <Alert>
           <AlertTitle>
-            {behind.length} {behind.length === 1 ? 'grant is' : 'grants are'} on an older
+            {behind} {behind === 1 ? 'grant is' : 'grants are'} on an older
             version
           </AlertTitle>
           <AlertDescription className="flex flex-wrap items-center gap-3">
@@ -124,11 +133,21 @@ export default async function ProgramPage({ params, searchParams }: PageProps<'/
             <form action={migrateProgram}>
               <input type="hidden" name="programId" value={program.id} />
               <Button type="submit" size="sm" variant="outline">
-                Move all {behind.length} to v{program.currentVersion}
+                Move all {behind} to v{program.currentVersion}
               </Button>
             </form>
           </AlertDescription>
         </Alert>
+      ) : null}
+
+      {lastRun ? (
+        <p className="text-xs text-muted-foreground">
+          Queue last recomputed {dateTime(lastRun.at)} ({lastRun.kind},{' '}
+          {lastRun.recordsScanned.toLocaleString('en-US')}{' '}
+          {lastRun.recordsScanned === 1 ? 'record' : 'records'} in {lastRun.durationMs}ms).
+          It is a cache of one pure function, re-derived on every write and verified
+          nightly against a fresh run.
+        </p>
       ) : null}
 
       <section>

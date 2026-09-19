@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { sql } from 'drizzle-orm'
 import { db, schema } from '../lib/db/index'
+import { recomputeAll } from '../lib/engine/materialize'
 import { archiveDocument } from '../lib/storage/blob'
 import { programAv1, programAv2, programARecords } from '../lib/seed/program-a'
 import { ROLE_PEOPLE } from '../lib/spec/types'
@@ -27,7 +28,7 @@ async function main() {
   console.log('Resetting…')
   // Order matters: events and records reference programs; deltas reference both.
   await db.execute(
-    sql`truncate table ${schema.events}, ${schema.deltas}, ${schema.snoozes}, ${schema.records}, ${schema.programVersions}, ${schema.programs}, ${schema.documents} restart identity cascade`,
+    sql`truncate table ${schema.queueRuns}, ${schema.recordWakeups}, ${schema.attentionItems}, ${schema.events}, ${schema.deltas}, ${schema.snoozes}, ${schema.records}, ${schema.programVersions}, ${schema.programs}, ${schema.documents} restart identity cascade`,
   )
 
   const csvText = read('awards.csv')
@@ -165,7 +166,12 @@ async function main() {
     await db.insert(schema.events).values(history)
   }
 
+  // The queue is a cache now, so seeding has to leave one behind.
+  console.log('Building the materialised queue…')
+  const queue = await recomputeAll(now)
+
   console.log('Done.')
+  console.log(`  Queue:   ${queue.written} items`)
   console.log(`  Program: ${program.name} (v2)`)
   console.log(`  Awards:  ${programARecords.length}`)
   console.log('  Not seeded (perform live in the demo): amendment-01.md, Program B')

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { applyOps, currentElement, opKind, opTarget, type DeltaOp } from '@/lib/spec/delta'
 import { evaluate, describe } from '@/lib/spec/expr'
 import { dateTime, money } from '@/lib/format'
-import { getDelta, getDocument, getPrograms, getRecords } from '@/lib/queries'
+import { getDelta, getDocument, getPrograms, getProgramRecords } from '@/lib/queries'
 import type { RecordRow } from '@/lib/queries'
 import { ROLE_LABELS, stateLabel, type Clock, type Rule, type Spec } from '@/lib/spec/types'
 import { cn } from '@/lib/utils'
@@ -19,10 +19,9 @@ export default async function ReviewPage({ params }: PageProps<'/review/[id]'>) 
   const delta = await getDelta(id)
   if (!delta) notFound()
 
-  const [document, programs, records] = await Promise.all([
+  const [document, programs] = await Promise.all([
     getDocument(delta.documentId),
     getPrograms(),
-    getRecords(),
   ])
   const program = delta.programId ? programs.find((p) => p.id === delta.programId) : null
   const baseSpec = program?.currentSpec ?? null
@@ -30,7 +29,7 @@ export default async function ReviewPage({ params }: PageProps<'/review/[id]'>) 
   const changes = ops.filter((o) => o.op !== 'unresolved')
   const unresolved = ops.filter((o) => o.op === 'unresolved')
 
-  const mine = program ? records.filter((r) => r.programId === program.id) : []
+  const mine = program ? await getProgramRecords(program.id) : []
   const nextSpec = baseSpec ? applyOps(baseSpec, changes) : null
 
   if (delta.status !== 'pending') {
@@ -358,6 +357,9 @@ function Detail({ op, spec }: { op: DeltaOp; spec: Spec | null }) {
  * This is the sentence that makes an amendment concrete: not "the threshold
  * changed" but "these two awards now need a signature they do not have".
  */
+/** Naming them stops helping somewhere around here; the count carries the rest. */
+const IMPACT_SHOWN = 8
+
 function Impact({
   op,
   baseSpec,
@@ -412,7 +414,7 @@ function Impact({
         {affected.length} in-flight {affected.length === 1 ? 'grant' : 'grants'} {sentence}.
       </p>
       <ul className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-        {affected.map((r) => (
+        {affected.slice(0, IMPACT_SHOWN).map((r) => (
           <li key={r.id}>
             <Link href={`/grants/${r.id}`} className="underline-offset-4 hover:underline">
               {titleKey ? String(r.data[titleKey]) : r.ref}
@@ -422,6 +424,9 @@ function Impact({
             {r.ref}
           </li>
         ))}
+        {affected.length > IMPACT_SHOWN ? (
+          <li>and {affected.length - IMPACT_SHOWN} more</li>
+        ) : null}
       </ul>
     </div>
   )

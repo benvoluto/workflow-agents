@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "dotenv -e .env.local -- tsx scripts/seed.mts",
+    "seed:scale": "dotenv -e .env.local -- tsx scripts/seed-scale.mts",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
     "fixtures": "dotenv -e .env.local -- tsx scripts/build-fixtures.mts",

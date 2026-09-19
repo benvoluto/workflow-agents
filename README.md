@@ -112,8 +112,11 @@ dialog.
 | `lib/spec/` | The spec model, the expression DSL and its evaluator, delta operations |
 | `lib/engine/runtime.ts` | `availableTransitions`, `validateTransition`, field requirements |
 | `lib/engine/attention.ts` | `attention(programs, records, now)` — the whole queue, one pure function |
+| `lib/engine/wake.ts` | `nextWakeAt` — when a record next changes on its own |
+| `lib/engine/materialize.ts` | Recompute on write, the midnight sweep, and `verifyQueue` |
+| `app/api/cron/` | The scheduled endpoints: sweep, wake, verify |
 | `lib/ingest/` | Extraction prompts, the model route, the fixture fallback |
-| `lib/db/schema.ts` | Seven tables: documents, programs, program_versions, records, events, deltas, snoozes |
+| `lib/db/schema.ts` | Ten tables: documents, programs, program_versions, records, events, deltas, snoozes, and the derived attention_items, record_wakeups, queue_runs |
 | `app/actions.ts` | Every write the app can perform |
 | `samples/` | The sample documents |
 | `components/` | The interface: split queue cards, program cards, the funnel, the explain and provenance panels |
@@ -149,10 +152,107 @@ of any shape.
 
 | Command | Does |
 |---|---|
-| `pnpm seed` | Reset to the demo's starting state |
+| `pnpm seed` | Reset to the demo's starting state — twelve hand-placed awards |
+| `pnpm seed:scale` | Reset to two programs at ~1,100 awards each (`pnpm seed:scale 5000` for more) |
 | `pnpm fixtures` | Run the real extractors over `/samples` and commit the results as a fallback cache |
 | `pnpm samples` | Re-embed `/samples` after editing them |
 | `pnpm db:generate` / `pnpm db:migrate` | Drizzle migrations |
+
+## The queue
+
+The queue is one pure function — `attention(programs, records, now)` — over the
+specs, the records, and what time it is. That has not changed. What changed is
+that the answer is now kept in a table instead of being recomputed on every page
+load, and the function's job is to define what belongs in that table and to
+prove, on a schedule, that it still does.
+
+### Why the recompute moved
+
+Not for speed. Evaluating a few dozen rules against a couple of thousand records
+is milliseconds; what hurt was fetching every row with its `jsonb` payload on
+every request. The real gap was different: computed only on page load, nothing
+could happen **between** page loads. A payment passed its service level
+objective at 2am and the system's reaction was to wait for somebody to open a
+browser.
+
+### It only changes at midnight
+
+`now` reaches the engine through exactly one function, `daysBetween`, which
+floors both instants to UTC midnight. Every urgency test, every sort key and
+every label is a day count; `dueAt` derives from `stateEnteredAt`, not from
+`now`.
+
+So for a fixed set of records and specs, **the queue is a step function that can
+only change at UTC midnight**. Which means there is nothing to poll for. Two
+triggers cover every way the answer can move:
+
+| Trigger | What it recomputes |
+|---|---|
+| a write — transition, field edit, approval, migration, import | that record, plus its program's change-impact rows |
+| `0 0 * * *` — the day boundary | every program, because day-count labels all move at once |
+
+`nextWakeAt(record, specs, now)` derives the instant a record will turn over
+from `stateEnteredAt` and the clock, and stores it in `record_wakeups`. So
+`/api/cron/wake` scans an index on one timestamp rather than every grant in
+flight, and is a no-op on most runs. It exists as the hook for the thing a
+page-load queue cannot do at all: notifying the person who owns an item the
+moment it breaches.
+
+### The cache cannot quietly drift
+
+Materialising a queue normally costs you the property that made it trustworthy —
+that there is exactly one definition of what needs attention. It does not cost
+that here, because the pure function is still the arbiter and something asks it:
+`verifyQueue` runs the engine again and diffs it against the table, reporting
+anything missing, extra or changed. It runs at the end of every sweep, at the
+end of both seed scripts, and on demand at `/api/cron/verify`, which answers 409
+when the two disagree. A non-empty diff is a bug report, not a reconciliation
+step — nothing in it writes.
+
+Three things keep this honest in the design rather than by discipline:
+
+- **`attention_items` stores the whole item as `jsonb`**, not spread across
+  columns, so the engine stays the single definition of what an item is. The
+  columns beside it are only what the read path filters and sorts on.
+- **Sharding is provable, not hopeful.** The record loop never reads across
+  programs and change impact is already scoped to one, so
+  `attention(all, all, now)` is `attentionForProgram` mapped and sorted.
+  Recomputing one program in isolation cannot give a different answer.
+- **Per-viewer filters stay in the read path.** Role and snooze are cheap
+  predicates over cached rows — one cache, three role views — so neither is ever
+  a reason to recompute.
+
+### Reading it
+
+Nothing on the home screen loads the full set of grants any more. The tabs are a
+`group by`, the funnel is a `group by`, the queue is a page of 50, and
+`/grants` pages in SQL with "needs attention" as an `EXISTS` against the cache.
+The exception is deliberate: the review screen loads one program's records in
+full, because a count of what an amendment would affect is worse than useless if
+it is only approximately right.
+
+### Running it at scale
+
+```bash
+pnpm db:migrate
+pnpm seed:scale          # two programs, ~1,100 awards each, 2,212 records
+```
+
+The script seeds both programs, builds the queue, and verifies it. On a Neon
+database that is roughly:
+
+```
+Records:       2,212
+Events:        6,795
+Queue items:   612 in 4200ms
+Verification:  cache matches the engine
+```
+
+`CRON_SECRET` guards the three endpoints when it is set, and Vercel Cron sends
+it automatically. `vercel.json` schedules the sweep only; `/api/cron/wake` is
+left unscheduled because the Hobby plan allows one cron a day, and every wakeup
+lands at midnight anyway — schedule it more often on a paid plan if you want the
+escalation hook to fire promptly.
 
 ## Known limits
 
@@ -166,7 +266,20 @@ of any shape.
 - **Judgment.** The system routes and clocks milestone verification. It cannot
   decide that construction is actually finished.
 - Clocks count calendar days, not business days, even where a contract says
-  otherwise.
+  otherwise. This is also what makes the midnight-only recompute correct, so
+  business days would mean rethinking the wakeup schedule, not just the label.
+- **Recompute-on-write costs about a second.** It is roughly ten sequential
+  round trips to Neon over HTTP inside the server action. Correct, and invisible
+  next to the redirect, but a real deployment would batch it or move it behind a
+  queue rather than making the person who clicked wait for it.
+- **The verification job reports; it does not repair.** A mismatch is left
+  standing on the assumption that a wrong cache is a bug worth seeing rather
+  than papering over. The next sweep overwrites it either way.
+- A same-millisecond double write to one record can leave a stale row until the
+  next sweep, because stale rows are identified by timestamp rather than by a
+  run id.
+- Change-impact rows name the first six affected grants and then count the rest;
+  at a thousand records the full list was a paragraph nobody reads.
 - No auth. The role switcher is a cookie, which is the right trade for a demo
   whose point is that one set of grants produces three different queues.
 - No PDF parsing, no cross-program conflict detection beyond a shared-party flag,

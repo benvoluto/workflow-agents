@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { and, eq, sql } from 'drizzle-orm'
 import { db, schema } from '@/lib/db'
 import { availableTransitions, validateTransition, type RecordLike } from '@/lib/engine/runtime'
+import { recomputeForRecord, recomputeProgram } from '@/lib/engine/materialize'
 import { applyOps, type DeltaOp } from '@/lib/spec/delta'
 import { coerceValue, extractDelta } from '@/lib/ingest/extract'
 import { createProgramFromTable, currentSpecOf, importRows } from '@/lib/ingest/import'
@@ -121,6 +122,7 @@ async function ingest(input: {
   if (isTable) {
     const programId = targetProgramId || (await createProgramFromTable(name, bodyText))
     await importRows(programId, bodyText)
+    await recomputeProgram(programId)
     revalidatePath('/', 'layout')
     redirect(`/programs/${programId}?imported=1`)
   }
@@ -233,6 +235,10 @@ export async function approveDelta(formData: FormData) {
     })
     .where(eq(schema.deltas.id, deltaId))
 
+  // A new version changes what every in-flight record is compared against, so
+  // the whole program is recomputed before anybody is redirected at it.
+  await recomputeProgram(programId)
+
   revalidatePath('/', 'layout')
   redirect(`/programs/${programId}?applied=${nextVersion}`)
 }
@@ -310,6 +316,8 @@ export async function performTransition(formData: FormData) {
     })
   }
 
+  await recomputeForRecord(recordId, now)
+
   revalidatePath('/', 'layout')
   redirect(`/grants/${recordId}`)
 }
@@ -341,6 +349,8 @@ export async function updateField(formData: FormData) {
     at: now,
   })
 
+  await recomputeForRecord(recordId, now)
+
   revalidatePath('/', 'layout')
   redirect(`/grants/${recordId}`)
 }
@@ -357,6 +367,9 @@ export async function migrateRecord(formData: FormData) {
   const [row] = await db.select().from(schema.records).where(eq(schema.records.id, recordId))
   if (!row) redirect('/grants')
   await migrateOne(row, actorFor(role))
+  // Program-wide: moving one record off an old version also changes what the
+  // program's grouped change-impact row has left to say.
+  await recomputeProgram(row.programId)
   revalidatePath('/', 'layout')
   redirect(`/grants/${recordId}`)
 }
@@ -378,6 +391,7 @@ export async function migrateProgram(formData: FormData) {
     )
 
   for (const row of rows) await migrateOne(row, actorFor(role))
+  await recomputeProgram(programId)
   revalidatePath('/', 'layout')
   redirect(`/programs/${programId}?migrated=${rows.length}`)
 }

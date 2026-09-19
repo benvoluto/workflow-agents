@@ -3,11 +3,15 @@ import { BuildingsIcon } from '@phosphor-icons/react/dist/ssr'
 import { Badge } from '@/components/ui/badge'
 import { PageHeading } from '@/components/page-heading'
 import { StateChip } from '@/components/state-chip'
-import { getPrograms, getRecords } from '@/lib/queries'
+import { behindCount, getPrograms, getStateCounts, getVersionCounts } from '@/lib/queries'
 import { shortDate } from '@/lib/format'
 
 export default async function ProgramsPage() {
-  const [programs, records] = await Promise.all([getPrograms(), getRecords()])
+  const [programs, stateCounts, versionCounts] = await Promise.all([
+    getPrograms(),
+    getStateCounts(),
+    getVersionCounts(),
+  ])
 
   if (programs.length === 0) {
     return (
@@ -31,8 +35,11 @@ export default async function ProgramsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {programs.map((program) => {
-          const mine = records.filter((r) => r.programId === program.id)
-          const behind = mine.filter((r) => r.specVersion < program.currentVersion)
+          const total = [...(stateCounts.get(program.id)?.values() ?? [])].reduce(
+            (a, b) => a + b,
+            0,
+          )
+          const behind = behindCount(versionCounts.get(program.id), program.currentVersion)
           const spec = program.currentSpec
           return (
             <Link
@@ -45,7 +52,8 @@ export default async function ProgramsPage() {
                 <Badge variant="outline">v{program.currentVersion}</Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {mine.length} {mine.length === 1 ? program.entity.toLowerCase() : `${program.entity.toLowerCase()}s`}
+                {total.toLocaleString('en-US')}{' '}
+                {total === 1 ? program.entity.toLowerCase() : `${program.entity.toLowerCase()}s`}
                 {' · '}
                 {spec?.rules.length ?? 0} {spec?.rules.length === 1 ? 'rule' : 'rules'}
                 {' · '}
@@ -58,7 +66,7 @@ export default async function ProgramsPage() {
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
                 Last changed {shortDate(program.versions[program.versions.length - 1]?.createdAt)}
-                {behind.length > 0 ? ` · ${behind.length} on an older version` : ''}
+                {behind > 0 ? ` \u00b7 ${behind} on an older version` : ''}
               </p>
             </Link>
           )
