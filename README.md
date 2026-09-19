@@ -79,20 +79,6 @@ With neither route working, uploads fall back to extraction results committed fo
 the documents in `/samples`, so the demo still runs — but a document of your own
 will not extract.
 
-### The wire format is not the domain model
-
-Structured output will not compile a schema that is self-referencing, uses
-positional tuples, carries more than sixteen union-typed fields, or grows past a
-grammar budget. The domain model breaks all four: its expression language is
-recursive, comparisons are pairs, and nearly every element has a nullable
-`source`.
-
-So `lib/ingest/schemas.ts` defines a separate flat wire format with explicit
-sentinels, and normalises it into the real types before anything is stored. Delta
-extraction also splits into two concurrent calls — one for structure, one for
-policy — which keeps each schema inside the budget and gives each call a single
-job.
-
 ## The demo
 
 Step-by-step script, including timings, fallbacks and the questions it tends to
