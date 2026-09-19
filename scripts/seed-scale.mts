@@ -185,10 +185,20 @@ async function main() {
     },
   ])
 
-  const signature = (r: () => number, amount: number) =>
-    // Most large awards have been counter-signed; the ones that have not are
-    // what the dual-signature rule is for.
-    amount > 50000 && r() > 0.35 ? `${ROLE_PEOPLE.cfo}, ${1 + Math.floor(r() * 20)}d ago` : null
+  /**
+   * §4.2 puts the CFO counter-signature before the release of funds, so where
+   * it is outstanding says as much as whether it is. An award that has been
+   * disbursed was signed — a closed award still waiting on the CFO is not a
+   * backlog, it is a contradiction. The genuine gap sits in the two states
+   * ahead of release, and only on a minority of those.
+   */
+  const signature = (r: () => number, amount: number, state: string) => {
+    if (amount <= 50000) return null
+    const signed = `${ROLE_PEOPLE.cfo}, ${1 + Math.floor(r() * 20)}d ago`
+    if (state === 'approved') return r() < 0.3 ? null : signed
+    if (state === 'tranche_pending') return r() < 0.12 ? null : signed
+    return signed
+  }
 
   const awardsA = generateRecords({
     spec: programAv2,
@@ -197,11 +207,17 @@ async function main() {
     refStart: 1053,
     seed: 20260919,
     amount: { min: 8000, max: 400000 },
+    // Disbursement SLO is 10 days, escalating at 7. Most tranches are released
+    // inside a working week; the bands past that are deliberately thin, and
+    // start clear of the threshold so a dataset seeded today does not drift
+    // into a wall of breaches by the end of the week.
     mix: [
       { state: 'closed', share: 0.44, maxDaysInState: 60 },
       { state: 'paid', share: 0.15, maxDaysInState: 30 },
       { state: 'evidence_review', share: 0.15, maxDaysInState: 21 },
-      { state: 'tranche_pending', share: 0.16, maxDaysInState: 22 },
+      { state: 'tranche_pending', share: 0.141, maxDaysInState: 5 },
+      { state: 'tranche_pending', share: 0.012, minDaysInState: 7, maxDaysInState: 10 },
+      { state: 'tranche_pending', share: 0.007, minDaysInState: 11, maxDaysInState: 18 },
       { state: 'approved', share: 0.1, maxDaysInState: 12 },
     ],
     keys: {
@@ -210,12 +226,12 @@ async function main() {
       date: 'approval_date',
       extra: {
         milestone_count: (r) => 1 + Math.floor(r() * 6),
-        cfo_signature: (r, amount) => signature(r, amount),
+        cfo_signature: (r, amount, state) => signature(r, amount, state),
         evidence_url: (r, _amount, state) => {
           if (state === 'approved' || state === 'tranche_pending') return null
           // A minority reach evidence review with nothing recorded — the
           // "missing information" branch of the engine.
-          if (state === 'evidence_review' && r() < 0.18) return null
+          if (state === 'evidence_review' && r() < 0.11) return null
           return `https://example.org/evidence/${Math.floor(r() * 1e6)}`
         },
       },
@@ -229,10 +245,15 @@ async function main() {
     refStart: 5001,
     seed: 76301,
     amount: { min: 2000, max: 25000 },
+    // Payment SLO is 5 days, escalating at 3 — a short clock, so the healthy
+    // band has to be short too, and there is less room for the data to age
+    // before the warning band starts filling up.
     mix: [
       { state: 'closed', share: 0.5, maxDaysInState: 50 },
       { state: 'paid', share: 0.18, maxDaysInState: 24 },
-      { state: 'payment_pending', share: 0.2, maxDaysInState: 12 },
+      { state: 'payment_pending', share: 0.17, maxDaysInState: 2 },
+      { state: 'payment_pending', share: 0.02, minDaysInState: 3, maxDaysInState: 5 },
+      { state: 'payment_pending', share: 0.01, minDaysInState: 6, maxDaysInState: 12 },
       { state: 'approved', share: 0.12, maxDaysInState: 9 },
     ],
     keys: {
@@ -240,8 +261,10 @@ async function main() {
       amount: 'amount',
       date: 'decision_date',
       extra: {
+        // Receipt confirmation lags payment by days, not weeks. What is
+        // outstanding is the recent end of the paid pile, not most of it.
         receipt_confirmed: (r, _amount, state) =>
-          state === 'closed' ? true : state === 'paid' ? r() > 0.4 : false,
+          state === 'closed' ? true : state === 'paid' ? r() > 0.12 : false,
       },
     },
     // Program A's providers, so the shared-party flag has something real to

@@ -57,7 +57,24 @@ export type GeneratedRecord = {
   data: Record<string, unknown>
 }
 
-export type StateMix = { state: string; share: number; maxDaysInState: number }
+/**
+ * A slice of the population: a state, how much of it, and how long those
+ * records have been sitting there.
+ *
+ * The same state can appear more than once with different day bands, which is
+ * how a clocked state gets an honest shape — a bulk that is comfortably inside
+ * its SLO, a thin band approaching it, and a thinner one past it. A single
+ * uniform 0..max band cannot do that: set `max` anywhere near twice the clock
+ * and half the state is overdue, which is what makes a rule that should be
+ * exceptional read as the norm.
+ */
+export type StateMix = {
+  state: string
+  share: number
+  /** Days in state, sampled uniformly over [minDaysInState, maxDaysInState). */
+  maxDaysInState: number
+  minDaysInState?: number
+}
 
 export type GenerateOptions = {
   spec: Spec
@@ -103,7 +120,11 @@ export function generateRecords(options: GenerateOptions): GeneratedRecord[] {
     const n = Math.round(entry.share * options.count)
     for (let i = 0; i < n; i++) states.push(entry)
   }
-  while (states.length < options.count) states.push(mix[mix.length - 1])
+  // Rounding leaves a remainder. It goes to the largest slice, never to
+  // whichever happened to be written last — a thin "past its clock" band would
+  // otherwise absorb the shortfall and stop being thin.
+  const bulk = mix.reduce((a, b) => (b.share > a.share ? b : a))
+  while (states.length < options.count) states.push(bulk)
   for (let i = states.length - 1; i > 0; i--) {
     const j = Math.floor(r() * (i + 1))
     ;[states[i], states[j]] = [states[j], states[i]]
@@ -122,7 +143,9 @@ export function generateRecords(options: GenerateOptions): GeneratedRecord[] {
     const span = Math.log(amount.max / amount.min)
     const value = Math.round((amount.min * Math.exp(r() * span)) / 100) * 100
 
-    const enteredDaysAgo = Math.floor(r() * entry.maxDaysInState)
+    const floorDays = entry.minDaysInState ?? 0
+    const spanDays = Math.max(1, entry.maxDaysInState - floorDays)
+    const enteredDaysAgo = floorDays + Math.floor(r() * spanDays)
     const createdDaysAgo = enteredDaysAgo + 1 + Math.floor(r() * 40)
 
     const data: Record<string, unknown> = {
