@@ -138,7 +138,7 @@ export default async function HomePage({ searchParams }: PageProps<'/'>) {
         ) : (
           <div className="space-y-4">
             {visibleItems.map((item) => (
-              <AttentionCard key={item.id} item={item} />
+              <AttentionCard key={item.id} item={item} role={role} />
             ))}
           </div>
         )}

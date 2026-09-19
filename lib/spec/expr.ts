@@ -1,3 +1,4 @@
+import { isOverridden } from './overrides'
 import type { Expr, Field, Operand, Spec } from './types'
 
 type Data = Record<string, unknown>
@@ -48,7 +49,14 @@ export function evaluate(expr: Expr | null | undefined, data: Data): boolean {
   if ('gte' in expr) return compare(resolve(expr.gte[0], data), resolve(expr.gte[1], data), 'gte')
   if ('lt' in expr) return compare(resolve(expr.lt[0], data), resolve(expr.lt[1], data), 'lt')
   if ('lte' in expr) return compare(resolve(expr.lte[0], data), resolve(expr.lte[1], data), 'lte')
-  if ('isSet' in expr) return !isEmpty(resolve(expr.isSet, data))
+  if ('isSet' in expr) {
+    // A waived requirement counts as satisfied here, and only here. `isSet` is
+    // the form a guard takes when it asks "has somebody dealt with this yet",
+    // and an override is a person answering yes on the record. Rules with a
+    // named `require` list are deliberately not covered — see `unmetRules`.
+    if (typeof expr.isSet === 'string' && isOverridden(data, expr.isSet)) return true
+    return !isEmpty(resolve(expr.isSet, data))
+  }
   if ('and' in expr) return expr.and.every((e) => evaluate(e, data))
   if ('or' in expr) return expr.or.some((e) => evaluate(e, data))
   if ('not' in expr) return !evaluate(expr.not, data)

@@ -22,6 +22,7 @@ import {
 } from '@/lib/queries'
 import { currentRole } from '@/lib/roles'
 import { describe } from '@/lib/spec/expr'
+import { overrideOf } from '@/lib/spec/overrides'
 import { ROLE_LABELS, ROLE_PEOPLE, stateLabel } from '@/lib/spec/types'
 
 export default async function RecordPage({ params, searchParams }: PageProps<'/grants/[id]'>) {
@@ -179,6 +180,18 @@ export default async function RecordPage({ params, searchParams }: PageProps<'/g
                       }
                     >
                       {displayValue(record.data[field.key], field.type)}
+                      {/*
+                        An override never stands in for a value. The field still
+                        reads as empty; what is added is who decided to go on
+                        without it, so nobody later mistakes a waiver for a
+                        record that was actually complete.
+                      */}
+                      {overrideOf(record.data, field.key) ? (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          Overridden by {overrideOf(record.data, field.key)!.by} on{' '}
+                          {shortDate(overrideOf(record.data, field.key)!.at)}
+                        </span>
+                      ) : null}
                     </span>
                     <FieldEditor
                       recordId={record.id}
@@ -393,6 +406,8 @@ function describeEvent(event: {
       return `signed ${p.key}`
     case 'field_updated':
       return `set ${p.key}`
+    case 'requirement_overridden':
+      return `overrode ${p.label ?? p.key} — this one goes ahead without it`
     case 'spec_applied':
       return `applied spec v${p.version}${p.document ? ` from ${p.document}` : ''}`
     case 'migrated':

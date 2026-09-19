@@ -1,8 +1,11 @@
 import { evaluate } from '@/lib/spec/expr'
 import {
+  evidenceOverrideFor,
   forwardTransitions,
   missingRequiredFields,
+  signatureFor,
   unmetRules,
+  type InlineAction,
   type RecordLike,
 } from './runtime'
 import type { Clock, Role, Spec } from '@/lib/spec/types'
@@ -27,6 +30,12 @@ export type AttentionItem = {
   evidence: { document: string; clause: string; quote: string } | null
   /** What would take this item out of the queue. */
   resolution: string
+  /**
+   * The one thing that can be done about this item from the queue itself,
+   * when there is exactly one and it is unambiguous who it belongs to.
+   * Null on everything else, which is most items.
+   */
+  action: InlineAction | null
   /** Lower sorts first within a group. */
   sortKey: number
 }
@@ -130,6 +139,7 @@ export function attentionForRecord(
     programId: ctx.programId,
     programName: ctx.programName,
     amount,
+    action: null as InlineAction | null,
   }
 
   // 1. Clocks — breach or approach.
@@ -189,6 +199,7 @@ export function attentionForRecord(
       ageLabel: `waiting ${daysBetween(record.stateEnteredAt, now)} days`,
       evidence: rule.source,
       resolution: `Recording ${needed} clears this.`,
+      action: signatureFor(spec, rule, record),
       sortKey: -daysBetween(record.stateEnteredAt, now),
     })
   }
@@ -210,6 +221,7 @@ export function attentionForRecord(
       ageLabel: `${daysBetween(record.stateEnteredAt, now)}d in state`,
       evidence: missing[0]?.source ?? null,
       resolution: `Filling in ${names} lets this move on.`,
+      action: evidenceOverrideFor(spec, record),
       sortKey: -daysBetween(record.stateEnteredAt, now),
     })
   }
@@ -295,6 +307,7 @@ export function changeImpactFor(
       ageLabel: `${affected.length} affected`,
       evidence: rule.source,
       resolution: `Moving these grants to v${ctx.currentVersion} applies the new rule to them.`,
+      action: null,
       sortKey: -affected.length,
     })
   }
@@ -326,6 +339,7 @@ export function changeImpactFor(
       ageLabel: `${affected.length} affected`,
       evidence: clock.source,
       resolution: `Moving these grants to v${ctx.currentVersion} applies the tighter window to them.`,
+      action: null,
       sortKey: -affected.length,
     })
   }

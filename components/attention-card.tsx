@@ -6,6 +6,7 @@ import {
   WarningCircleIcon,
 } from '@phosphor-icons/react/dist/ssr'
 import { ExplainSheet } from '@/components/explain-sheet'
+import { ItemAction } from '@/components/item-action'
 import { ItemMenu } from '@/components/item-menu'
 import { SnoozeButton } from '@/components/snooze-button'
 import type { AttentionItem, Urgency } from '@/lib/engine/attention'
@@ -58,12 +59,16 @@ const REASON_ICON = {
  */
 export function AttentionCard({
   item,
+  role,
   snoozedUntil,
 }: {
   item: AttentionItem
+  /** Whose queue this is. An action is only offered to the role it belongs to. */
+  role: Role
   snoozedUntil?: Date | null
 }) {
   const tone = TONE[item.urgency]
+  const action = item.action?.role === role ? item.action : null
   const Icon = REASON_ICON[item.reason as keyof typeof REASON_ICON] ?? WarningCircleIcon
   const href = item.recordId ? `/grants/${item.recordId}` : `/programs/${item.programId}`
 
@@ -109,6 +114,11 @@ export function AttentionCard({
         </p>
 
         <div className="flex items-center gap-8">
+          {action ? (
+            <div className={RAISED}>
+              <ItemAction action={action} />
+            </div>
+          ) : null}
           <div className={RAISED}>
             <ExplainSheet item={serialise(item)} />
           </div>

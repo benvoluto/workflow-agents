@@ -5,13 +5,21 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { and, eq, sql } from 'drizzle-orm'
 import { db, schema } from '@/lib/db'
-import { availableTransitions, validateTransition, type RecordLike } from '@/lib/engine/runtime'
+import {
+  availableTransitions,
+  evidenceOverrideFor,
+  signatureFor,
+  unmetRules,
+  validateTransition,
+  type RecordLike,
+} from '@/lib/engine/runtime'
 import { recomputeForRecord, recomputeProgram } from '@/lib/engine/materialize'
 import { applyOps, type DeltaOp } from '@/lib/spec/delta'
 import { coerceValue, extractDelta } from '@/lib/ingest/extract'
 import { createProgramFromTable, currentSpecOf, importRows } from '@/lib/ingest/import'
 import { actorFor, currentRole, ROLE_COOKIE, ROLES, type Role } from '@/lib/roles'
 import { archiveDocument } from '@/lib/storage/blob'
+import { withOverride } from '@/lib/spec/overrides'
 import type { Spec } from '@/lib/spec/types'
 import { emptySpec, titleFromDocument } from '@/lib/spec/starter'
 import { SAMPLES } from '@/lib/samples.generated'
@@ -353,6 +361,120 @@ export async function updateField(formData: FormData) {
 
   revalidatePath('/', 'layout')
   redirect(`/grants/${recordId}`)
+}
+
+/**
+ * The two actions a queue card can take without opening the record.
+ *
+ * Both re-derive the action from the spec before writing, rather than trusting
+ * what the card sent: a button rendered ten minutes ago may be describing a
+ * requirement that has since been met, or a version that has since moved. The
+ * card and the action call the same functions, so there is one definition of
+ * what is offerable and it is enforced on the server.
+ *
+ * Neither redirects. These are taken from a queue, and the queue is where
+ * whoever took them is still standing — the item simply leaves it.
+ */
+async function loadForInlineAction(recordId: string) {
+  const [row] = await db.select().from(schema.records).where(eq(schema.records.id, recordId))
+  if (!row) return null
+  const spec = await specForRecord(row.programId, row.specVersion)
+  if (!spec) return null
+  const record: RecordLike = {
+    id: row.id,
+    ref: row.ref,
+    programId: row.programId,
+    specVersion: row.specVersion,
+    state: row.state,
+    data: row.data,
+    stateEnteredAt: row.stateEnteredAt,
+  }
+  return { row, spec, record }
+}
+
+/** Countersign, from the queue. The signature is who pressed it and when. */
+export async function signRequirement(
+  recordId: string,
+  fieldKey: string,
+): Promise<string | null> {
+  const role = await currentRole()
+  const loaded = await loadForInlineAction(recordId)
+  if (!loaded) return 'That record is no longer here.'
+  const { spec, record } = loaded
+
+  const offered = unmetRules(spec, record)
+    .map((rule) => signatureFor(spec, rule, record))
+    .find((a) => a?.fieldKey === fieldKey)
+
+  if (!offered) return 'That signature is no longer outstanding.'
+  if (offered.role !== role) return 'That signature belongs to a different role.'
+
+  const now = new Date()
+  const value = `${actorFor(role)}, ${now.toISOString()}`
+
+  await db
+    .update(schema.records)
+    .set({ data: { ...record.data, [fieldKey]: value }, updatedAt: now })
+    .where(eq(schema.records.id, recordId))
+
+  await db.insert(schema.events).values({
+    recordId,
+    type: 'signed',
+    actor: actorFor(role),
+    payload: { key: fieldKey, value, from: 'queue' },
+    at: now,
+  })
+
+  await recomputeForRecord(recordId, now)
+  revalidatePath('/', 'layout')
+  return null
+}
+
+/**
+ * Proceed without the evidence link, on the record, under a name.
+ *
+ * The link is still missing and still reads as missing. What the override adds
+ * is a person saying they are going ahead anyway, which is the honest version
+ * of what happens today in a spreadsheet and an email nobody can find later.
+ */
+export async function overrideRequirement(
+  recordId: string,
+  fieldKey: string,
+): Promise<string | null> {
+  const role = await currentRole()
+  const loaded = await loadForInlineAction(recordId)
+  if (!loaded) return 'That record is no longer here.'
+  const { spec, record } = loaded
+
+  const offered = evidenceOverrideFor(spec, record)
+  if (!offered || offered.fieldKey !== fieldKey) {
+    return 'That requirement is no longer outstanding.'
+  }
+  if (offered.role !== role) return 'That override belongs to a different role.'
+
+  const now = new Date()
+  const data = withOverride(record.data, fieldKey, {
+    by: actorFor(role),
+    at: now.toISOString(),
+    reason: null,
+  })
+
+  await db
+    .update(schema.records)
+    .set({ data, updatedAt: now })
+    .where(eq(schema.records.id, recordId))
+
+  await db.insert(schema.events).values({
+    recordId,
+    type: 'requirement_overridden',
+    actor: actorFor(role),
+    payload: { key: fieldKey, label: offered.fieldLabel, from: 'queue' },
+    at: now,
+  })
+
+  await recomputeForRecord(recordId, now)
+  revalidatePath('/', 'layout')
+  return null
 }
 
 /**

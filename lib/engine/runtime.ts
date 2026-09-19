@@ -1,4 +1,5 @@
 import { evaluate } from '@/lib/spec/expr'
+import { isOverridden } from '@/lib/spec/overrides'
 import type { Field, Role, Rule, Spec, Transition } from '@/lib/spec/types'
 
 export type RecordLike = {
@@ -24,17 +25,28 @@ function stateIndex(spec: Spec, state: string): number {
  * Required fields that are still empty. `requiredFrom` lets a field become
  * required partway through the lifecycle rather than at creation, which is what
  * makes CSV import possible at all.
+ *
+ * A field somebody has overridden is not missing any more — not because a value
+ * appeared, but because the requirement was waived by a named person and that
+ * decision is on the record.
  */
 export function missingRequiredFields(spec: Spec, record: RecordLike): Field[] {
   const here = stateIndex(spec, record.state)
   return spec.fields.filter((f) => {
     if (!f.required) return false
     if (f.requiredFrom && stateIndex(spec, f.requiredFrom) > here) return false
+    if (isOverridden(record.data, f.key)) return false
     return isEmpty(record.data[f.key])
   })
 }
 
-/** Rules whose condition holds but whose requirements have not been satisfied. */
+/**
+ * Rules whose condition holds but whose requirements have not been satisfied.
+ *
+ * Deliberately blind to overrides: a rule is a named control with a named role,
+ * and nothing in this app lets one be waived from a queue card. Only the
+ * emptiness of a required *field* can be overridden.
+ */
 export function unmetRules(spec: Spec, record: RecordLike): Rule[] {
   return spec.rules.filter(
     (r) =>
@@ -122,4 +134,85 @@ export function validateTransition(
 /** Fields to render on the detail form, in spec order. */
 export function renderFields(spec: Spec): Field[] {
   return spec.fields
+}
+
+
+/**
+ * The two things a queue card is allowed to do without opening the record.
+ *
+ * Both are derived here rather than in the queue, so the button that appears
+ * and the server action that fires are reading the same definition. Each names
+ * the role it belongs to; the queue offers it to nobody else, and the action
+ * re-derives it before it writes.
+ */
+export type InlineAction =
+  | {
+      kind: 'sign'
+      recordId: string
+      fieldKey: string
+      fieldLabel: string
+      role: Role
+    }
+  | {
+      kind: 'override_evidence'
+      recordId: string
+      fieldKey: string
+      fieldLabel: string
+      role: Role
+    }
+
+/**
+ * The signature a rule is waiting on, when that is the whole of what it is
+ * waiting on.
+ *
+ * A rule requiring a signature and something else is not signable in one
+ * click — the card sends that one to the record instead of half-doing it.
+ */
+export function signatureFor(
+  spec: Spec,
+  rule: Rule,
+  record: RecordLike,
+): InlineAction | null {
+  if (!rule.role) return null
+  const outstanding = rule.require.filter((key) => isEmpty(record.data[key]))
+  if (outstanding.length !== 1) return null
+  const field = spec.fields.find((f) => f.key === outstanding[0])
+  if (!field || field.type !== 'signature') return null
+  return {
+    kind: 'sign',
+    recordId: record.id,
+    fieldKey: field.key,
+    fieldLabel: field.label,
+    role: rule.role,
+  }
+}
+
+/**
+ * A missing evidence link that the role owing the next move could decide to
+ * proceed without.
+ *
+ * Evidence is a required `url` field — the type, not a particular key, because
+ * the spec is authored by whatever document arrived, and the key it chose is
+ * its own business.
+ *
+ * The override covers that one requirement and no other. A record missing an
+ * evidence link and something else stays in the queue after it, with the link
+ * no longer on the list — which is the truth, and better than either hiding
+ * the button or implying one click cleared everything.
+ */
+export function evidenceOverrideFor(
+  spec: Spec,
+  record: RecordLike,
+): InlineAction | null {
+  const field = missingRequiredFields(spec, record).find((f) => f.type === 'url')
+  if (!field) return null
+  const owner = forwardTransitions(spec, record)[0]?.role
+  if (!owner) return null
+  return {
+    kind: 'override_evidence',
+    recordId: record.id,
+    fieldKey: field.key,
+    fieldLabel: field.label,
+    role: owner,
+  }
 }
